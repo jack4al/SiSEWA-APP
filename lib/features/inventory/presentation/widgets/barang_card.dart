@@ -79,15 +79,21 @@ class BarangCard extends StatelessWidget {
                     ),
                   const SizedBox(height: 8),
 
-                  // Stok info
-                  Row(
+                  // Info Harga & Stok
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
                     children: [
+                      _stokChip(
+                        icon: Icons.payments_outlined,
+                        label: '${_formatCurrency(barang.hargaSewa)}/hari',
+                        color: AppColors.primary,
+                      ),
                       _stokChip(
                         icon: Icons.inventory_2_outlined,
                         label: 'Total: ${barang.stokTotal}',
                         color: AppColors.textSecondary,
                       ),
-                      const SizedBox(width: 8),
                       _stokChip(
                         icon: Icons.check_circle_outline,
                         label: 'Tersedia: ${barang.stokTersedia}',
@@ -207,5 +213,14 @@ class BarangCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatCurrency(double amount) {
+    final str = amount.toInt().toString();
+    final formatted = str.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+    return 'Rp $formatted';
   }
 }

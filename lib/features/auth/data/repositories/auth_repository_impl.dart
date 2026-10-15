@@ -14,22 +14,50 @@ class AuthRepositoryImpl implements AuthRepository {
   // ============ LOGIN ============
   @override
   Future<UserEntity?> login(String username, String password) async {
-    final query = _db.select(_db.users)
-      ..where((t) => t.username.equals(username))
-      ..where((t) => t.passwordHash.equals(password))
-      ..where((t) => t.status.equals('aktif'))
-      ..limit(1);
+    // 1. Cek apakah username ada dalam database
+    final userByUsername = await (_db.select(_db.users)
+          ..where((t) => t.username.equals(username))
+          ..limit(1))
+        .getSingleOrNull();
 
-    final user = await query.getSingleOrNull();
-    if (user == null) return null;
+    if (userByUsername == null) {
+      throw Exception('Username tidak ada atau password salah');
+    }
+
+    // 2. Cek apakah password cocok
+    if (userByUsername.passwordHash != password) {
+      throw Exception('Password salah');
+    }
+
+    // 3. Cek status akun
+    if (userByUsername.status != 'aktif') {
+      throw Exception('Akun sedang dinonaktifkan. Hubungi admin');
+    }
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyUserId, user.idUser);
+    await prefs.setInt(_keyUserId, userByUsername.idUser);
 
-    await (_db.update(_db.users)..where((t) => t.idUser.equals(user.idUser)))
+    await (_db.update(_db.users)..where((t) => t.idUser.equals(userByUsername.idUser)))
         .write(UsersCompanion(lastLogin: Value(DateTime.now())));
 
-    return _toEntity(user);
+    return _toEntity(userByUsername);
+  }
+
+  // ============ RESET PASSWORD ============
+  @override
+  Future<bool> resetPassword(String username, String newPassword) async {
+    final user = await (_db.select(_db.users)
+          ..where((t) => t.username.equals(username))
+          ..limit(1))
+        .getSingleOrNull();
+
+    if (user == null) {
+      throw Exception('Username tidak ditemukan dalam database');
+    }
+
+    await (_db.update(_db.users)..where((t) => t.idUser.equals(user.idUser)))
+        .write(UsersCompanion(passwordHash: Value(newPassword)));
+    return true;
   }
 
   // ============ CEK USERNAME ============
@@ -89,15 +117,18 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       // 3. Kalau role admin_ormawa → buat Organisasi + UserOrganisasi
-      if (data.role == 'admin_ormawa' &&
-          data.namaOrganisasi != null &&
-          data.singkatanOrganisasi != null) {
+      if (data.role == 'admin_ormawa' && data.namaOrganisasi != null) {
+        final singkatanVal = (data.singkatanOrganisasi != null &&
+                data.singkatanOrganisasi!.trim().isNotEmpty)
+            ? data.singkatanOrganisasi!.trim()
+            : _generateSingkatan(data.namaOrganisasi!);
+
         final orgId = await _db
             .into(_db.organisasi)
             .insert(
               OrganisasiCompanion.insert(
                 namaOrganisasi: data.namaOrganisasi!,
-                singkatan: data.singkatanOrganisasi!,
+                singkatan: singkatanVal,
                 fakultas: Value(data.fakultas ?? ''),
                 jurusan: Value(data.jurusan ?? ''),
                 email: Value(data.email),
@@ -158,4 +189,19 @@ class AuthRepositoryImpl implements AuthRepository {
     role: user.role,
     status: user.status,
   );
+
+  String _generateSingkatan(String nama) {
+    final words = nama.trim().split(RegExp(r'\s+'));
+    if (words.length > 1) {
+      final initials = words.map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
+      if (initials.length >= 2) {
+        return initials.length > 10 ? initials.substring(0, 10) : initials;
+      }
+    }
+    final clean = nama.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    if (clean.length >= 2) {
+      return clean.substring(0, clean.length > 10 ? 10 : clean.length);
+    }
+    return clean.padRight(2, 'X');
+  }
 }

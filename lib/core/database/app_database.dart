@@ -318,10 +318,6 @@ class AppDatabase extends _$AppDatabase {
           deskripsi: const Value('Admin pengelola ormawa'),
         ),
         LevelCompanion.insert(
-          namaLevel: 'admin_siswa',
-          deskripsi: const Value('Admin tingkat fakultas/siswa'),
-        ),
-        LevelCompanion.insert(
           namaLevel: 'penyewa',
           deskripsi: const Value('Penyewa barang'),
         ),

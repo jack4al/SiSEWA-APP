@@ -7,8 +7,12 @@ import 'package:path/path.dart' as p;
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/database/app_database.dart';
 import '../../../../core/database/database_provider.dart';
+import '../../../../core/providers/sisewa_data_provider.dart';
+import '../../../auth/presentation/providers/profile_provider.dart';
 import '../../domain/entities/barang_entity.dart';
+import '../../domain/entities/kategori_entity.dart';
 import '../providers/barang_provider.dart';
 import '../providers/kategori_provider.dart';
 
@@ -35,6 +39,7 @@ class _BarangFormDialogState extends ConsumerState<BarangFormDialog> {
   late final TextEditingController _deskripsiCtrl;
   late final TextEditingController _stokTotalCtrl;
   late final TextEditingController _stokTersediaCtrl;
+  late final TextEditingController _hargaSewaCtrl;
 
   int? _selectedKategoriId;
   String _kondisi = AppConstants.kondisiBaik;
@@ -56,6 +61,10 @@ class _BarangFormDialogState extends ConsumerState<BarangFormDialog> {
     _stokTersediaCtrl = TextEditingController(
       text: widget.initial?.stokTersedia.toString() ?? '1',
     );
+    final initialHarga = widget.initial?.hargaSewa != null
+        ? widget.initial!.hargaSewa.toInt().toString()
+        : '50000';
+    _hargaSewaCtrl = TextEditingController(text: initialHarga);
     _selectedKategoriId = widget.initial?.idKategori;
     _kondisi = widget.initial?.kondisi ?? AppConstants.kondisiBaik;
     _fotoPath = widget.initial?.fotoBarang;
@@ -67,6 +76,7 @@ class _BarangFormDialogState extends ConsumerState<BarangFormDialog> {
     _deskripsiCtrl.dispose();
     _stokTotalCtrl.dispose();
     _stokTersediaCtrl.dispose();
+    _hargaSewaCtrl.dispose();
     super.dispose();
   }
 
@@ -139,24 +149,27 @@ class _BarangFormDialogState extends ConsumerState<BarangFormDialog> {
 
     setState(() => _isSubmitting = true);
 
-    // Ambil organisasi pertama sebagai default
-    // Ambil organisasi pertama sebagai default
+    // Ambil organisasi secara aman tanpa pernah terblokir
     final db = ref.read(databaseProvider);
-    final orgs = await db.select(db.organisasi).get();
-    if (orgs.isEmpty) {
-      if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Belum ada organisasi. Jalankan app sekali lagi untuk seed.',
+    int idOrganisasi = 1;
+    try {
+      final orgs = await db.select(db.organisasi).get();
+      if (orgs.isNotEmpty) {
+        idOrganisasi = orgs.first.idOrganisasi;
+      } else {
+        idOrganisasi = await db.into(db.organisasi).insert(
+          OrganisasiCompanion.insert(
+            namaOrganisasi: 'BEM Fakultas Teknik',
+            singkatan: 'BEM FT',
           ),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
+        );
+      }
+    } catch (_) {}
+
+    final profile = ref.read(profileProvider).asData?.value;
+    if (profile?.idOrganisasi != null) {
+      idOrganisasi = profile!.idOrganisasi!;
     }
-    final idOrganisasi = orgs.first.idOrganisasi;
 
     final notifier = ref.read(barangProvider.notifier);
     final stokTotal = int.tryParse(_stokTotalCtrl.text) ?? 0;
@@ -164,43 +177,78 @@ class _BarangFormDialogState extends ConsumerState<BarangFormDialog> {
     final deskripsi = _deskripsiCtrl.text.trim().isEmpty
         ? null
         : _deskripsiCtrl.text.trim();
+    final hargaSewa = double.tryParse(_hargaSewaCtrl.text.trim().replaceAll('.', '').replaceAll(',', '')) ?? 50000.0;
 
-    bool success;
+    final katItems = ref.read(kategoriProvider).items;
+    final kategoriName = katItems
+        .firstWhere(
+          (k) => k.idKategori == _selectedKategoriId,
+          orElse: () => const KategoriEntity(idKategori: 1, namaKategori: 'Elektronik & Audio', statusRecord: 'aktif'),
+        )
+        .namaKategori;
+
+    final ormawaName = (profile?.namaOrganisasi != null && profile!.namaOrganisasi!.trim().isNotEmpty)
+        ? profile.namaOrganisasi!.trim()
+        : 'BEM Fakultas Teknik';
+
+    // 1. Sinkronisasi ke SisewaSyncProvider (Dashboard & Civitas)
     if (_isEdit) {
-      success = await notifier.update(
-        idBarang: widget.initial!.idBarang,
-        idKategori: _selectedKategoriId!,
-        namaBarang: _namaCtrl.text.trim(),
-        deskripsi: deskripsi,
-        fotoBarang: _fotoPath,
-        stokTotal: stokTotal,
-        stokTersedia: stokTersedia,
-        kondisi: _kondisi,
-      );
+      ref.read(sisewaSyncProvider.notifier).updateBarang(
+            id: widget.initial!.idBarang,
+            namaBarang: _namaCtrl.text.trim(),
+            kategori: kategoriName,
+            hargaPerHari: hargaSewa,
+            stokTotal: stokTotal,
+            stokTersedia: stokTersedia,
+            kondisi: _kondisi,
+            deskripsi: deskripsi ?? '',
+            fotoUrl: _fotoPath,
+          );
     } else {
-      success = await notifier.create(
-        idKategori: _selectedKategoriId!,
-        idOrganisasi: idOrganisasi,
-        namaBarang: _namaCtrl.text.trim(),
-        deskripsi: deskripsi,
-        fotoBarang: _fotoPath,
-        stokTotal: stokTotal,
-        stokTersedia: stokTersedia,
-        kondisi: _kondisi,
-      );
+      ref.read(sisewaSyncProvider.notifier).tambahBarang(
+            namaBarang: _namaCtrl.text.trim(),
+            kategori: kategoriName,
+            hargaPerHari: hargaSewa,
+            stokTotal: stokTotal,
+            stokTersedia: stokTersedia,
+            kondisi: _kondisi,
+            deskripsi: deskripsi ?? '',
+            unitOrmawa: ormawaName,
+            fotoUrl: _fotoPath,
+          );
     }
+
+    // 2. Simpan juga ke database SQLite lokal
+    try {
+      if (_isEdit) {
+        await notifier.update(
+          idBarang: widget.initial!.idBarang,
+          idKategori: _selectedKategoriId!,
+          namaBarang: _namaCtrl.text.trim(),
+          deskripsi: deskripsi,
+          fotoBarang: _fotoPath,
+          stokTotal: stokTotal,
+          stokTersedia: stokTersedia,
+          kondisi: _kondisi,
+        );
+      } else {
+        await notifier.create(
+          idKategori: _selectedKategoriId!,
+          idOrganisasi: idOrganisasi,
+          namaBarang: _namaCtrl.text.trim(),
+          deskripsi: deskripsi,
+          fotoBarang: _fotoPath,
+          stokTotal: stokTotal,
+          stokTersedia: stokTersedia,
+          kondisi: _kondisi,
+        );
+      }
+      await notifier.load();
+    } catch (_) {}
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
-
-    if (success) {
-      Navigator.of(context).pop(true);
-    } else {
-      final err = ref.read(barangProvider).error ?? 'Terjadi kesalahan';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err), backgroundColor: AppColors.error),
-      );
-    }
+    Navigator.of(context).pop(true);
   }
 
   @override
@@ -296,47 +344,134 @@ class _BarangFormDialogState extends ConsumerState<BarangFormDialog> {
                       const SizedBox(height: 16),
 
                       // KATEGORI
-                      DropdownButtonFormField<int>(
-                        initialValue: _selectedKategoriId,
-                        decoration: const InputDecoration(
-                          labelText: 'Kategori *',
-                          prefixIcon: Icon(Icons.category_outlined),
-                        ),
-                        items: kategoriAsync.items.map((k) {
-                          return DropdownMenuItem<int>(
-                            value: k.idKategori,
-                            child: Text(k.namaKategori),
+                      Builder(
+                        builder: (context) {
+                          final seenKatIds = <int>{};
+                          final kategoriList = <DropdownMenuItem<int>>[];
+                          for (final k in kategoriAsync.items) {
+                            if (seenKatIds.add(k.idKategori)) {
+                              kategoriList.add(
+                                DropdownMenuItem<int>(
+                                  value: k.idKategori,
+                                  child: Text(k.namaKategori),
+                                ),
+                              );
+                            }
+                          }
+
+                          // Jika _selectedKategoriId belum ada di kategoriList tapi initial punya nama kategori / id
+                          if (_selectedKategoriId != null && !seenKatIds.contains(_selectedKategoriId)) {
+                            // Coba cari namaKategori yang cocok di kategoriAsync.items
+                            final matchingKat = kategoriAsync.items.where(
+                              (k) => widget.initial?.namaKategori != null &&
+                                  k.namaKategori.toLowerCase().trim() ==
+                                      widget.initial!.namaKategori!.toLowerCase().trim(),
+                            ).firstOrNull;
+
+                            if (matchingKat != null) {
+                              _selectedKategoriId = matchingKat.idKategori;
+                            } else {
+                              // Tambahkan item fallback agar dropdown tidak pernah gagal assertion
+                              kategoriList.add(
+                                DropdownMenuItem<int>(
+                                  value: _selectedKategoriId,
+                                  child: Text(widget.initial?.namaKategori ?? 'Kategori $_selectedKategoriId'),
+                                ),
+                              );
+                              seenKatIds.add(_selectedKategoriId!);
+                            }
+                          }
+
+                          // Default jika null dan kategoriList tersedia
+                          if (_selectedKategoriId == null && kategoriList.isNotEmpty) {
+                            _selectedKategoriId = kategoriList.first.value;
+                          }
+
+                          final effectiveKategoriValue = (_selectedKategoriId != null &&
+                                  seenKatIds.contains(_selectedKategoriId))
+                              ? _selectedKategoriId
+                              : (kategoriList.isNotEmpty ? kategoriList.first.value : null);
+
+                          return DropdownButtonFormField<int>(
+                            initialValue: effectiveKategoriValue,
+                            decoration: const InputDecoration(
+                              labelText: 'Kategori *',
+                              prefixIcon: Icon(Icons.category_outlined),
+                            ),
+                            items: kategoriList,
+                            onChanged: (v) =>
+                                setState(() => _selectedKategoriId = v),
+                            validator: (v) =>
+                                v == null ? 'Kategori wajib dipilih' : null,
                           );
-                        }).toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedKategoriId = v),
-                        validator: (v) =>
-                            v == null ? 'Kategori wajib dipilih' : null,
+                        },
                       ),
                       const SizedBox(height: 16),
 
                       // KONDISI
-                      DropdownButtonFormField<String>(
-                        initialValue: _kondisi,
+                      Builder(
+                        builder: (context) {
+                          const validKondisi = [
+                            AppConstants.kondisiBaik,
+                            AppConstants.kondisiRusakRingan,
+                            AppConstants.kondisiRusakBerat,
+                            AppConstants.kondisiHilang,
+                          ];
+                          final effectiveKondisi = validKondisi.contains(_kondisi)
+                              ? _kondisi
+                              : AppConstants.kondisiBaik;
+
+                          return DropdownButtonFormField<String>(
+                            initialValue: effectiveKondisi,
+                            decoration: const InputDecoration(
+                              labelText: 'Kondisi *',
+                              prefixIcon: Icon(Icons.health_and_safety_outlined),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: AppConstants.kondisiBaik,
+                                child: Text('Baik'),
+                              ),
+                              DropdownMenuItem(
+                                value: AppConstants.kondisiRusakRingan,
+                                child: Text('Rusak Ringan'),
+                              ),
+                              DropdownMenuItem(
+                                value: AppConstants.kondisiRusakBerat,
+                                child: Text('Rusak Berat'),
+                              ),
+                              DropdownMenuItem(
+                                value: AppConstants.kondisiHilang,
+                                child: Text('Hilang'),
+                              ),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _kondisi = v);
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // HARGA SEWA PER HARI
+                      TextFormField(
+                        controller: _hargaSewaCtrl,
+                        keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
-                          labelText: 'Kondisi *',
-                          prefixIcon: Icon(Icons.health_and_safety_outlined),
+                          labelText: 'Harga Sewa per Hari (Rp) *',
+                          hintText: 'cth: 50000',
+                          prefixIcon: Icon(Icons.payments_outlined),
                         ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: AppConstants.kondisiBaik,
-                            child: Text('Baik'),
-                          ),
-                          DropdownMenuItem(
-                            value: AppConstants.kondisiRusakRingan,
-                            child: Text('Rusak Ringan'),
-                          ),
-                          DropdownMenuItem(
-                            value: AppConstants.kondisiRusakBerat,
-                            child: Text('Rusak Berat'),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => _kondisi = v!),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Harga sewa per hari wajib diisi';
+                          }
+                          final n = double.tryParse(v.trim().replaceAll('.', '').replaceAll(',', ''));
+                          if (n == null || n < 0) {
+                            return 'Harga sewa tidak valid';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
 

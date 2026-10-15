@@ -124,9 +124,10 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
     }
 
     // Update organisasi
-    if (p.isAdminOrmawa && p.idOrganisasi != null) {
+    if (p.isAdminOrmawa) {
+      final orgId = p.idOrganisasi ?? 1;
       ok = await notifier.updateOrganisasiInfo(
-        idOrganisasi: p.idOrganisasi!,
+        idOrganisasi: orgId,
         namaOrganisasi: _namaOrgCtrl.text.trim(),
         singkatan: _singkatanOrgCtrl.text.trim(),
         fakultas: _fakultasCtrl.text.trim(),
@@ -258,15 +259,6 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
-                        controller: _emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
                         controller: _teleponCtrl,
                         keyboardType: TextInputType.phone,
                         decoration: const InputDecoration(
@@ -283,16 +275,8 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
                         TextFormField(
                           controller: _nimCtrl,
                           decoration: const InputDecoration(
-                            labelText: 'NIM',
+                            labelText: 'NPM',
                             prefixIcon: Icon(Icons.numbers_outlined),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _kelasCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Kelas',
-                            prefixIcon: Icon(Icons.class_outlined),
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -340,33 +324,6 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
-                          controller: _singkatanOrgCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Singkatan',
-                            prefixIcon: Icon(Icons.short_text_rounded),
-                          ),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Singkatan wajib diisi'
-                              : null,
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _namaKetuaCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Nama Ketua',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _namaPembinaCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Nama Pembina',
-                            prefixIcon: Icon(Icons.supervisor_account_outlined),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
                           controller: _fakultasCtrl,
                           decoration: const InputDecoration(
                             labelText: 'Fakultas',
@@ -379,16 +336,6 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
                           decoration: const InputDecoration(
                             labelText: 'Jurusan',
                             prefixIcon: Icon(Icons.book_outlined),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _alamatCtrl,
-                          maxLines: 2,
-                          decoration: const InputDecoration(
-                            labelText: 'Alamat Sekretariat',
-                            prefixIcon: Icon(Icons.home_outlined),
-                            alignLabelWithHint: true,
                           ),
                         ),
                       ],

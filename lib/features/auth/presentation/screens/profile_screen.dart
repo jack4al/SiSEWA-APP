@@ -10,7 +10,9 @@ import '../widgets/change_password_dialog.dart';
 import '../widgets/edit_profile_dialog.dart';
 
 class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({super.key});
+  final VoidCallback? onBack;
+
+  const ProfileScreen({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,8 +23,29 @@ class ProfileScreen extends ConsumerWidget {
         title: const Text('Profil Saya'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Kembali ke Dashboard',
+          onPressed: () {
+            if (onBack != null) {
+              onBack!();
+            } else {
+              Navigator.of(context).maybePop();
+            }
+          },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_rounded),
+            tooltip: 'Kembali ke Dashboard',
+            onPressed: () {
+              if (onBack != null) {
+                onBack!();
+              } else {
+                Navigator.of(context).maybePop();
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -106,8 +129,7 @@ class ProfileScreen extends ConsumerWidget {
                   title: 'Data Mahasiswa',
                   icon: Icons.school_outlined,
                   children: [
-                    _infoRow('NIM', profile.nim ?? '-'),
-                    _infoRow('Kelas', profile.kelas ?? '-'),
+                    _infoRow('NPM', profile.nim ?? '-'),
                     _infoRow('Fakultas', profile.fakultas ?? '-'),
                     _infoRow('Jurusan', profile.jurusan ?? '-'),
                     _infoRow('Alamat', profile.alamat ?? '-'),
@@ -123,13 +145,9 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.business_outlined,
                   children: [
                     _infoRow('Nama Organisasi', profile.namaOrganisasi ?? '-'),
-                    _infoRow('Singkatan', profile.singkatanOrganisasi ?? '-'),
                     _infoRow('Jabatan', profile.jabatan ?? '-'),
-                    _infoRow('Nama Ketua', profile.namaKetua ?? '-'),
-                    _infoRow('Nama Pembina', profile.namaPembina ?? '-'),
                     _infoRow('Fakultas', profile.fakultas ?? '-'),
                     _infoRow('Jurusan', profile.jurusan ?? '-'),
-                    _infoRow('Alamat', profile.alamat ?? '-'),
                   ],
                 ),
               ],

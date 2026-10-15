@@ -57,14 +57,28 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final user = await _repo.login(username, password);
       if (user == null) {
-        state = const AuthError('Username atau password salah');
+        state = const AuthError('Username tidak ada atau password salah');
         return false;
       }
       state = AuthAuthenticated(user);
       return true;
+    } on Exception catch (e) {
+      state = AuthError(e.toString().replaceFirst('Exception: ', ''));
+      return false;
     } catch (e) {
       state = AuthError('Terjadi kesalahan: $e');
       return false;
+    }
+  }
+
+  Future<String?> resetPassword(String username, String newPassword) async {
+    try {
+      await _repo.resetPassword(username, newPassword);
+      return null;
+    } on Exception catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    } catch (e) {
+      return 'Gagal mereset password: $e';
     }
   }
 

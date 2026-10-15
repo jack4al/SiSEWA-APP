@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/sisewa_data_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/providers/profile_provider.dart';
 import '../../domain/entities/barang_entity.dart';
 import '../providers/barang_provider.dart';
 import '../providers/kategori_provider.dart';
@@ -64,16 +66,16 @@ class _BarangScreenState extends ConsumerState<BarangScreen> {
     );
 
     if (confirm == true) {
-      final success = await ref
+      ref.read(sisewaSyncProvider.notifier).deleteBarang(barang.idBarang);
+      await ref
           .read(barangProvider.notifier)
           .delete(barang.idBarang);
       if (!mounted) return;
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? 'Barang berhasil dihapus' : 'Gagal menghapus barang',
-          ),
-          backgroundColor: success ? AppColors.success : AppColors.error,
+        const SnackBar(
+          content: Text('Barang berhasil dihapus'),
+          backgroundColor: AppColors.success,
         ),
       );
     }
@@ -150,28 +152,42 @@ class _BarangScreenState extends ConsumerState<BarangScreen> {
               // Filter Kategori
               Expanded(
                 flex: 1,
-                child: DropdownButtonFormField<int?>(
-                  initialValue: state.filterKategoriId,
-                  decoration: const InputDecoration(
-                    hintText: 'Semua Kategori',
-                    prefixIcon: Icon(Icons.filter_list_rounded),
-                  ),
-                  items: [
-                    const DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text('Semua Kategori'),
-                    ),
-                    ...kategoriState.items.map((k) {
-                      return DropdownMenuItem<int?>(
-                        value: k.idKategori,
-                        child: Text(k.namaKategori),
-                      );
-                    }),
-                  ],
-                  onChanged: (v) {
-                    ref
-                        .read(barangProvider.notifier)
-                        .load(idKategori: v, clearFilter: v == null);
+                child: Builder(
+                  builder: (context) {
+                    final seen = <int>{};
+                    final uniqueKategori = kategoriState.items
+                        .where((k) => seen.add(k.idKategori))
+                        .toList();
+                    final isValidSelection = state.filterKategoriId == null ||
+                        uniqueKategori
+                            .any((k) => k.idKategori == state.filterKategoriId);
+                    final currentValue =
+                        isValidSelection ? state.filterKategoriId : null;
+
+                    return DropdownButtonFormField<int?>(
+                      initialValue: currentValue,
+                      decoration: const InputDecoration(
+                        hintText: 'Semua Kategori',
+                        prefixIcon: Icon(Icons.filter_list_rounded),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('Semua Kategori'),
+                        ),
+                        ...uniqueKategori.map((k) {
+                          return DropdownMenuItem<int?>(
+                            value: k.idKategori,
+                            child: Text(k.namaKategori),
+                          );
+                        }),
+                      ],
+                      onChanged: (v) {
+                        ref
+                            .read(barangProvider.notifier)
+                            .load(idKategori: v, clearFilter: v == null);
+                      },
+                    );
                   },
                 ),
               ),
@@ -180,25 +196,110 @@ class _BarangScreenState extends ConsumerState<BarangScreen> {
           const SizedBox(height: 20),
 
           // ===== CONTENT =====
-          Expanded(child: _buildContent(state)),
+          Expanded(child: _buildContent(state, kategoriState)),
         ],
       ),
     );
   }
 
-  Widget _buildContent(BarangState state) {
-    if (state.isLoading && state.items.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+  Widget _buildContent(BarangState state, KategoriState kategoriState) {
+    final profile = ref.watch(profileProvider).asData?.value;
+    final ormawaName = (profile?.namaOrganisasi != null && profile!.namaOrganisasi!.trim().isNotEmpty)
+        ? profile.namaOrganisasi!.trim()
+        : 'BEM Fakultas Teknik';
+
+    final syncState = ref.watch(sisewaSyncProvider);
+
+    // Filter inventaris ormawa sama persis dengan Katalog Inventaris di Dashboard
+    var ormawaBarang = syncState.barangList.where((b) {
+      final unitLower = b.unitOrmawa.toLowerCase();
+      final orgLower = ormawaName.toLowerCase();
+      return unitLower.contains(orgLower) || orgLower.contains(unitLower) ||
+          (orgLower.contains('bem') && unitLower.contains('bem'));
+    }).toList();
+
+    if (ormawaBarang.isEmpty) {
+      ormawaBarang = syncState.barangList.where((b) => b.unitOrmawa.contains('BEM')).toList();
+    }
+    if (ormawaBarang.isEmpty) {
+      ormawaBarang = syncState.barangList;
     }
 
-    if (state.items.isEmpty) {
+    final displayItems = ormawaBarang.map((b) {
+      // Cari idKategori yang sesuai dari kategoriState
+      int resolvedKategoriId = 1;
+      if (kategoriState.items.isNotEmpty) {
+        final match = kategoriState.items.where(
+          (k) =>
+              k.namaKategori.toLowerCase().trim() ==
+                  b.kategori.toLowerCase().trim() ||
+              b.kategori.toLowerCase().contains(k.namaKategori.toLowerCase()) ||
+              k.namaKategori.toLowerCase().contains(b.kategori.toLowerCase()),
+        ).firstOrNull;
+        if (match != null) {
+          resolvedKategoriId = match.idKategori;
+        } else {
+          resolvedKategoriId = kategoriState.items.first.idKategori;
+        }
+      }
+
+      return BarangEntity(
+        idBarang: b.id,
+        idKategori: resolvedKategoriId,
+        idOrganisasi: 1,
+        namaBarang: b.namaBarang,
+        deskripsi: b.deskripsi,
+        fotoBarang: b.fotoUrl,
+        stokTotal: b.stokTotal,
+        stokTersedia: b.stokTersedia,
+        kondisi: b.kondisi,
+        statusRecord: 'aktif',
+        hargaSewa: b.hargaPerHari,
+        namaKategori: b.kategori,
+        namaOrganisasi: b.unitOrmawa,
+      );
+    }).toList();
+
+    if (displayItems.isEmpty) {
       return _emptyState();
     }
 
+    final query = _searchCtrl.text.toLowerCase().trim();
+    final selectedKat = state.filterKategoriId != null && kategoriState.items.isNotEmpty
+        ? kategoriState.items
+            .firstWhere(
+              (k) => k.idKategori == state.filterKategoriId,
+              orElse: () => kategoriState.items.first,
+            )
+            .namaKategori
+            .toLowerCase()
+        : null;
+
+    final filtered = displayItems.where((b) {
+      final matchQuery = query.isEmpty ||
+          b.namaBarang.toLowerCase().contains(query) ||
+          (b.namaKategori?.toLowerCase().contains(query) ?? false);
+      final matchKategori = selectedKat == null ||
+          (b.namaKategori?.toLowerCase().contains(selectedKat) ?? false);
+      return matchQuery && matchKategori;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'Tidak ada barang yang cocok dengan filter pencarian.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ),
+        ),
+      );
+    }
+
     return ListView.builder(
-      itemCount: state.items.length,
+      itemCount: filtered.length,
       itemBuilder: (context, i) {
-        final barang = state.items[i];
+        final barang = filtered[i];
         return BarangCard(
           barang: barang,
           onEdit: () => _openForm(initial: barang),

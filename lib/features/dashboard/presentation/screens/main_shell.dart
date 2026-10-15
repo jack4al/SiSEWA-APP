@@ -6,11 +6,15 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_sidebar.dart';
 import '../../../../core/widgets/app_topbar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/presentation/screens/pengguna_screen.dart';
+import '../../../auth/presentation/providers/profile_provider.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../../inventory/presentation/screens/barang_screen.dart';
 import '../../../inventory/presentation/screens/kategori_screen.dart';
+import '../../../payments/presentation/screens/civitas_pembayaran_screen.dart';
 import '../../../payments/presentation/screens/pembayaran_screen.dart';
+import '../../../rentals/presentation/screens/civitas_dashboard_screen.dart';
+import '../../../rentals/presentation/screens/civitas_sewa_screen.dart';
 import '../../../rentals/presentation/screens/pengembalian_screen.dart';
 import '../../../rentals/presentation/screens/penyewaan_screen.dart';
 import 'dashboard_screen.dart';
@@ -32,6 +36,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     final authState = ref.watch(authProvider);
     final user = authState is AuthAuthenticated ? authState.user : null;
     final role = user?.role ?? '';
+    final isPenyewa = user?.isPenyewa == true;
+    final profile = ref.watch(profileProvider).asData?.value;
 
     // Filter menu berdasarkan role
     final menus = AppMenus.items.where((m) => m.isVisibleFor(role)).toList();
@@ -48,6 +54,7 @@ class _MainShellState extends ConsumerState<MainShell> {
             onToggleCollapse: () =>
                 setState(() => _sidebarCollapsed = !_sidebarCollapsed),
             onLogout: _handleLogout,
+            isPenyewa: isPenyewa,
           ),
 
           // ===== CONTENT AREA =====
@@ -57,14 +64,16 @@ class _MainShellState extends ConsumerState<MainShell> {
                 // Topbar
                 AppTopbar(
                   user: user,
+                  namaOrganisasi: profile?.namaOrganisasi,
                   onToggleSidebar: () =>
                       setState(() => _sidebarCollapsed = !_sidebarCollapsed),
                   onProfileTap: () => setState(() => _activeRoute = '/profil'),
+                  onChatTap: () => setState(() => _activeRoute = '/chat'),
                   onLogoutTap: _handleLogout,
                 ),
 
                 // Konten halaman
-                Expanded(child: _buildContent()),
+                Expanded(child: _buildContent(isPenyewa)),
               ],
             ),
           ),
@@ -73,7 +82,28 @@ class _MainShellState extends ConsumerState<MainShell> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(bool isPenyewa) {
+    // Mode Khusus Civitas (Penyewa): Fitur terpadu penyewa
+    if (isPenyewa) {
+      switch (_activeRoute) {
+        case '/dashboard':
+          return const CivitasDashboardScreen();
+        case '/penyewaan':
+          return const CivitasSewaScreen();
+        case '/pembayaran':
+          return const CivitasPembayaranScreen();
+        case '/chat':
+          return const ChatScreen();
+        case '/profil':
+          return ProfileScreen(
+            onBack: () => setState(() => _activeRoute = '/dashboard'),
+          );
+        default:
+          return const CivitasDashboardScreen();
+      }
+    }
+
+    // Mode Ormawa (Admin): Fitur inventaris, operasional & keuangan
     switch (_activeRoute) {
       case '/dashboard':
         return const DashboardScreen();
@@ -89,10 +119,12 @@ class _MainShellState extends ConsumerState<MainShell> {
         return const PembayaranScreen();
       case '/laporan':
         return const LaporanScreen();
-      case '/pengguna':
-        return const PenggunaScreen();
+      case '/chat':
+        return const ChatScreen();
       case '/profil':
-        return const ProfileScreen();
+        return ProfileScreen(
+          onBack: () => setState(() => _activeRoute = '/dashboard'),
+        );
       default:
         return const DashboardScreen();
     }

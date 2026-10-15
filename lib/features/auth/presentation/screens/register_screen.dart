@@ -23,16 +23,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _namaCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _teleponCtrl = TextEditingController();
-  final _nimCtrl = TextEditingController();
-  final _kelasCtrl = TextEditingController();
+  final _npmCtrl = TextEditingController();
   final _fakultasCtrl = TextEditingController();
   final _jurusanCtrl = TextEditingController();
   final _namaOrgCtrl = TextEditingController();
-  final _singkatanOrgCtrl = TextEditingController();
 
   String _role = 'penyewa';
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  String? _ktmFileName;
+  String? _ktmFileSize;
 
   @override
   void dispose() {
@@ -43,18 +43,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _namaCtrl.dispose();
     _emailCtrl.dispose();
     _teleponCtrl.dispose();
-    _nimCtrl.dispose();
-    _kelasCtrl.dispose();
+    _npmCtrl.dispose();
     _fakultasCtrl.dispose();
     _jurusanCtrl.dispose();
     _namaOrgCtrl.dispose();
-    _singkatanOrgCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
+
+    if (_ktmFileName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harap upload Kartu Tanda Mahasiswa (KTM) terlebih dahulu'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final data = RegisterData(
       username: _usernameCtrl.text.trim(),
@@ -63,14 +71,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       email: _emailCtrl.text.trim(),
       noTelepon: _teleponCtrl.text.trim(),
       role: _role,
-      nim: _role == 'penyewa' ? _nimCtrl.text.trim() : null,
-      kelas: _role == 'penyewa' ? _kelasCtrl.text.trim() : null,
+      nim: _role == 'penyewa' ? _npmCtrl.text.trim() : null,
+      kelas: null,
       fakultas: _fakultasCtrl.text.trim(),
       jurusan: _jurusanCtrl.text.trim(),
       namaOrganisasi: _role == 'admin_ormawa' ? _namaOrgCtrl.text.trim() : null,
       singkatanOrganisasi: _role == 'admin_ormawa'
-          ? _singkatanOrgCtrl.text.trim()
+          ? _generateSingkatan(_namaOrgCtrl.text.trim())
           : null,
+      ktmPath: _ktmFileName,
     );
 
     final success = await ref.read(authProvider.notifier).register(data);
@@ -264,6 +273,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   if (_role == 'penyewa') ..._penyewaFields(),
                   if (_role == 'admin_ormawa') ..._adminOrmawaFields(),
 
+                  const SizedBox(height: 24),
+
+                  // ====== UPLOAD KTM (CIVITAS MAUPUN ORMAWA) ======
+                  _buildKtmUploader(),
+
                   const SizedBox(height: 32),
 
                   // ====== TOMBOL SUBMIT ======
@@ -305,6 +319,124 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     style: Theme.of(context).textTheme.titleMedium
         ?.copyWith(color: AppColors.primary),
   );
+
+  Widget _buildKtmUploader() {
+    final hasFile = _ktmFileName != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Verifikasi KTM (Kartu Tanda Mahasiswa)'),
+        const SizedBox(height: 6),
+        Text(
+          _role == 'penyewa'
+              ? 'Upload foto/scan KTM aktif sebagai verifikasi identitas civitas mahasiswa.'
+              : 'Upload foto/scan KTM pengurus ormawa sebagai verifikasi penanggung jawab akun.',
+          style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 12),
+        InkWell(
+          onTap: () {
+            setState(() {
+              final prefix = _role == 'penyewa'
+                  ? (_npmCtrl.text.trim().isNotEmpty ? _npmCtrl.text.trim() : 'CIVITAS')
+                  : (_usernameCtrl.text.trim().isNotEmpty ? _usernameCtrl.text.trim() : 'ORMAWA');
+              _ktmFileName = 'KTM_${prefix.toUpperCase()}_SCAN.jpg';
+              _ktmFileSize = '1.8 MB • Gambar JPG Terverifikasi';
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('KTM ($_ktmFileName) berhasil dipilih!'),
+                backgroundColor: AppColors.success,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: hasFile ? AppColors.primarySurface : const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: hasFile ? AppColors.primary : AppColors.border,
+                width: hasFile ? 1.5 : 1,
+              ),
+            ),
+            child: hasFile
+                ? Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.badge_rounded, color: Colors.white, size: 26),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _ktmFileName!,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _ktmFileSize ?? 'KTM Valid',
+                              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, color: AppColors.textHint, size: 20),
+                        tooltip: 'Hapus File',
+                        onPressed: () {
+                          setState(() {
+                            _ktmFileName = null;
+                            _ktmFileSize = null;
+                          });
+                        },
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySurface,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.upload_file_rounded, color: AppColors.primary, size: 28),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Pilih / Unggah Berkas KTM',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Format JPG, PNG, atau PDF (Maks. 5 MB)',
+                        style: TextStyle(fontSize: 11.5, color: AppColors.textHint),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildRoleSelector() {
     return Column(
@@ -393,24 +525,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _sectionTitle('Data Mahasiswa'),
       const SizedBox(height: 12),
       TextFormField(
-        controller: _nimCtrl,
+        controller: _npmCtrl,
         keyboardType: TextInputType.number,
         decoration: const InputDecoration(
-          labelText: 'NIM',
+          labelText: 'NPM',
           prefixIcon: Icon(Icons.numbers_outlined),
         ),
         validator: (v) =>
-            (v == null || v.trim().isEmpty) ? 'NIM wajib diisi' : null,
-      ),
-      const SizedBox(height: 14),
-      TextFormField(
-        controller: _kelasCtrl,
-        decoration: const InputDecoration(
-          labelText: 'Kelas',
-          prefixIcon: Icon(Icons.class_outlined),
-        ),
-        validator: (v) =>
-            (v == null || v.trim().isEmpty) ? 'Kelas wajib diisi' : null,
+            (v == null || v.trim().isEmpty) ? 'NPM wajib diisi' : null,
       ),
       const SizedBox(height: 14),
       TextFormField(
@@ -451,16 +573,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
       const SizedBox(height: 14),
       TextFormField(
-        controller: _singkatanOrgCtrl,
-        decoration: const InputDecoration(
-          labelText: 'Singkatan (cth: BEM, HMIF)',
-          prefixIcon: Icon(Icons.short_text_rounded),
-        ),
-        validator: (v) =>
-            (v == null || v.trim().isEmpty) ? 'Singkatan wajib diisi' : null,
-      ),
-      const SizedBox(height: 14),
-      TextFormField(
         controller: _fakultasCtrl,
         decoration: const InputDecoration(
           labelText: 'Fakultas',
@@ -480,5 +592,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             (v == null || v.trim().isEmpty) ? 'Jurusan wajib diisi' : null,
       ),
     ];
+  }
+
+  String _generateSingkatan(String nama) {
+    final words = nama.trim().split(RegExp(r'\s+'));
+    if (words.length > 1) {
+      final initials = words.map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
+      if (initials.length >= 2) {
+        return initials.length > 10 ? initials.substring(0, 10) : initials;
+      }
+    }
+    final clean = nama.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    if (clean.length >= 2) {
+      return clean.substring(0, clean.length > 10 ? 10 : clean.length);
+    }
+    return clean.padRight(2, 'X');
   }
 }

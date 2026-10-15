@@ -9,6 +9,7 @@ class BarangEntity {
   final int stokTersedia;
   final String kondisi;
   final String statusRecord;
+  final double hargaSewa;
 
   // Field bonus (dari join)
   final String? namaKategori;
@@ -25,6 +26,7 @@ class BarangEntity {
     required this.stokTersedia,
     required this.kondisi,
     required this.statusRecord,
+    this.hargaSewa = 50000.0,
     this.namaKategori,
     this.namaOrganisasi,
   });

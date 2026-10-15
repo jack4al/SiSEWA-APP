@@ -27,6 +27,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
             .getSingleOrNull();
 
     // 3. Ambil data organisasi (kalau ada)
+    // 3. Ambil data organisasi (kalau ada)
     OrganisasiData? organisasi;
     UserOrganisasiData? userOrg;
 
@@ -42,6 +43,36 @@ class ProfileRepositoryImpl implements ProfileRepository {
                 ..where((t) => t.idOrganisasi.equals(userOrg!.idOrganisasi))
                 ..limit(1))
               .getSingleOrNull();
+    } else if (user.role == 'admin_ormawa') {
+      // Jika admin_ormawa belum terhubung ke userOrganisasi, ambil atau buat organisasi default
+      organisasi = await (_db.select(_db.organisasi)..limit(1)).getSingleOrNull();
+      if (organisasi == null) {
+        final newOrgId = await _db.into(_db.organisasi).insert(
+          OrganisasiCompanion.insert(
+            namaOrganisasi: 'BEM Fakultas Teknik',
+            singkatan: 'BEM FT',
+            fakultas: const Value('Teknik'),
+            jurusan: const Value('Informatika'),
+          ),
+        );
+        organisasi = await (_db.select(_db.organisasi)
+              ..where((t) => t.idOrganisasi.equals(newOrgId))
+              ..limit(1))
+            .getSingleOrNull();
+      }
+      if (organisasi != null) {
+        await _db.into(_db.userOrganisasi).insert(
+          UserOrganisasiCompanion.insert(
+            idUser: idUser,
+            idOrganisasi: organisasi.idOrganisasi,
+            jabatan: const Value('Ketua / Pengurus'),
+          ),
+        );
+        userOrg = await (_db.select(_db.userOrganisasi)
+              ..where((t) => t.idUser.equals(idUser))
+              ..limit(1))
+            .getSingleOrNull();
+      }
     }
 
     return ProfileEntity(
@@ -58,16 +89,16 @@ class ProfileRepositoryImpl implements ProfileRepository {
       idPeminjam: peminjam?.idPeminjam,
       nim: peminjam?.nim,
       kelas: peminjam?.kelas,
-      fakultas: peminjam?.fakultas,
-      jurusan: peminjam?.jurusan,
-      alamat: peminjam?.alamat,
+      fakultas: peminjam?.fakultas ?? organisasi?.fakultas,
+      jurusan: peminjam?.jurusan ?? organisasi?.jurusan,
+      alamat: peminjam?.alamat ?? organisasi?.alamat,
       // Organisasi
       idOrganisasi: organisasi?.idOrganisasi,
       namaOrganisasi: organisasi?.namaOrganisasi,
       singkatanOrganisasi: organisasi?.singkatan,
       namaKetua: organisasi?.namaKetua,
       namaPembina: organisasi?.namaPembina,
-      jabatan: userOrg?.jabatan,
+      jabatan: userOrg?.jabatan ?? (user.role == 'admin_ormawa' ? 'Pengurus' : null),
     );
   }
 

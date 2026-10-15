@@ -19,6 +19,9 @@ class RegisterData {
   final String? namaOrganisasi;
   final String? singkatanOrganisasi;
 
+  // Dokumen Pendukung (Civitas maupun Ormawa)
+  final String? ktmPath;
+
   const RegisterData({
     required this.username,
     required this.password,
@@ -32,6 +35,7 @@ class RegisterData {
     this.jurusan,
     this.namaOrganisasi,
     this.singkatanOrganisasi,
+    this.ktmPath,
   });
 }
 
@@ -39,6 +43,7 @@ abstract class AuthRepository {
   Future<UserEntity?> login(String username, String password);
   Future<UserEntity> register(RegisterData data);
   Future<bool> isUsernameTaken(String username);
+  Future<bool> resetPassword(String username, String newPassword);
   Future<void> logout();
   Future<UserEntity?> getCurrentUser();
 }

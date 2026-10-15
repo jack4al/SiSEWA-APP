@@ -57,10 +57,8 @@ class ProfileEntity {
     switch (role) {
       case 'admin_ormawa':
         return 'Admin Ormawa';
-      case 'admin_siswa':
-        return 'Admin Siswa';
       case 'penyewa':
-        return 'Penyewa';
+        return 'Civitas Mahasiswa';
       default:
         return role;
     }

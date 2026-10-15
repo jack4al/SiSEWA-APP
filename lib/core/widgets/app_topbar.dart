@@ -5,65 +5,77 @@ import '../../features/auth/domain/entities/user_entity.dart';
 
 class AppTopbar extends StatelessWidget {
   final UserEntity? user;
+  final String? namaOrganisasi;
   final VoidCallback? onToggleSidebar;
   final VoidCallback onProfileTap;
   final VoidCallback onLogoutTap;
+  final VoidCallback? onChatTap;
 
   const AppTopbar({
     super.key,
     required this.user,
+    this.namaOrganisasi,
     required this.onProfileTap,
     required this.onLogoutTap,
     this.onToggleSidebar,
+    this.onChatTap,
   });
+
+  String _buildDisplayName() {
+    final baseName = user?.namaLengkap ?? 'Admin Ormawa';
+    if (user?.isAdminOrmawa == true) {
+      final org = (namaOrganisasi != null && namaOrganisasi!.trim().isNotEmpty)
+          ? namaOrganisasi!.trim()
+          : 'BEM Fakultas Teknik';
+      return '$baseName ($org)';
+    }
+    return baseName;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 76,
+      color: AppColors.background,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
-          // ===== TOGGLE SIDEBAR =====
-          if (onToggleSidebar != null)
+          // Toggle sidebar button (mobile/desktop responsive)
+          if (onToggleSidebar != null) ...[
             IconButton(
-              icon: const Icon(Icons.menu_rounded),
+              icon: const Icon(Icons.menu_rounded, size: 22),
+              color: AppColors.textPrimary,
               tooltip: 'Toggle sidebar',
               onPressed: onToggleSidebar,
             ),
+            const SizedBox(width: 8),
+          ],
 
-          // ===== TITLE =====
-          const SizedBox(width: 4),
-          Text(
-            'Sistem Informasi Penyewaan Barang Ormawa',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-
+          // Spacer menggantikan search bar atas sehingga bersih di semua halaman
           const Spacer(),
 
-          // ===== NOTIFIKASI =====
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: 'Notifikasi',
-            onPressed: () {
+          // ===== 2. CIRCULAR ACTION BUTTONS =====
+          _buildCircleIconButton(
+            icon: Icons.mail_outline_rounded,
+            tooltip: 'Pesan & Chat',
+            onTap: onChatTap ?? () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur notifikasi segera hadir')),
+                const SnackBar(
+                  content: Text('Pesan & surat izin kegiatan kampus'),
+                  behavior: SnackBarBehavior.floating,
+                ),
               );
             },
           ),
+          const SizedBox(width: 16),
 
-          const SizedBox(width: 8),
-
-          // ===== PROFILE DROPDOWN =====
+          // ===== 3. DONEZO USER PROFILE PILL =====
           PopupMenuButton<String>(
-            tooltip: 'Profil',
-            offset: const Offset(0, 48),
+            tooltip: 'Menu Akun',
+            offset: const Offset(0, 50),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppColors.border),
             ),
             onSelected: (value) {
               if (value == 'profile') onProfileTap();
@@ -73,10 +85,10 @@ class AppTopbar extends StatelessWidget {
               PopupMenuItem(
                 value: 'profile',
                 child: Row(
-                  children: [
-                    const Icon(Icons.person_outline, size: 18),
-                    const SizedBox(width: 10),
-                    const Text('Profil Saya'),
+                  children: const [
+                    Icon(Icons.person_outline_rounded, size: 18),
+                    SizedBox(width: 10),
+                    Text('Profil Saya'),
                   ],
                 ),
               ),
@@ -96,61 +108,55 @@ class AppTopbar extends StatelessWidget {
                 ),
               ),
             ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  // Avatar
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primarySurface,
-                      shape: BoxShape.circle,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Avatar circle with playful Memoji color style
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDE68A),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _initial(user?.namaLengkap),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF92400E),
                     ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _initial(user?.namaLengkap),
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Name and email/role
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _buildDisplayName(),
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        user?.namaLengkap ?? 'Guest',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
+                    Text(
+                      (user?.email != null && user!.email!.trim().isNotEmpty)
+                          ? user!.email!
+                          : '-',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
                       ),
-                      Text(
-                        _roleLabel(user?.role),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textHint,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 6),
-                  const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 18,
-                    color: AppColors.textSecondary,
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -158,21 +164,51 @@ class AppTopbar extends StatelessWidget {
     );
   }
 
-  String _initial(String? name) {
-    if (name == null || name.isEmpty) return '?';
-    return name.trim()[0].toUpperCase();
+  Widget _buildCircleIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    bool hasBadge = false,
+  }) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: IconButton(
+        icon: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icon, size: 19, color: AppColors.textPrimary),
+            if (hasBadge)
+              Positioned(
+                top: -1,
+                right: -1,
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        tooltip: tooltip,
+        padding: EdgeInsets.zero,
+        onPressed: onTap,
+      ),
+    );
   }
 
-  String _roleLabel(String? role) {
-    switch (role) {
-      case 'admin_ormawa':
-        return 'Admin Ormawa';
-      case 'admin_siswa':
-        return 'Admin Siswa';
-      case 'penyewa':
-        return 'Penyewa';
-      default:
-        return 'Pengguna';
-    }
+  String _initial(String? name) {
+    if (name == null || name.trim().isEmpty) return 'A';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 }

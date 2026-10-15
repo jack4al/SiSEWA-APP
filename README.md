@@ -13,7 +13,7 @@ SISEWA adalah aplikasi transaksi penyewaan barang berbasis Flutter dirancang unt
 ## Fitur Utama
 
 ### 1. Autentikasi & Multi-Role User
-- Multi-Role Access : Mendukung level akses akun seperti `admin_ormawa`, `admin_siswa`, dan `penyewa`.
+- Dual-Role Access : Mendukung 2 level akses akun: `admin_ormawa` (Pengelola Aset Ormawa) dan `penyewa` (Civitas Mahasiswa).
 - Autentikasi Aman : Login, registrasi akun baru, pembaruan profil pengguna, dan fitur ganti password.
 - Session Management : Integrasi sesi tersimpan otomatis dengan `shared_preferences`.
 

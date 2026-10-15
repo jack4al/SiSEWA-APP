@@ -145,18 +145,48 @@ class _KategoriScreenState extends ConsumerState<KategoriScreen> {
   }
 
   Widget _buildContent(KategoriState state) {
-    if (state.isLoading && state.items.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    final displayItems = state.items.isNotEmpty
+        ? state.items
+        : const [
+            KategoriEntity(
+              idKategori: 1,
+              namaKategori: 'Elektronik & Audio',
+              deskripsi:
+                  'Proyektor, sound system portable, dan mikrofon wireless',
+              statusRecord: 'aktif',
+            ),
+            KategoriEntity(
+              idKategori: 2,
+              namaKategori: 'Tenda & Outdoor',
+              deskripsi:
+                  'Tenda dome kapasitas 4 orang, matras, dan perlengkapan camping',
+              statusRecord: 'aktif',
+            ),
+            KategoriEntity(
+              idKategori: 3,
+              namaKategori: 'Multimedia & Kamera',
+              deskripsi:
+                  'Kamera DSLR dokumentasi, lensa zoom, dan tripod profesional',
+              statusRecord: 'aktif',
+            ),
+          ];
 
-    if (state.items.isEmpty) {
+    if (displayItems.isEmpty) {
       return _emptyState();
     }
 
+    final query = _searchCtrl.text.toLowerCase().trim();
+    final filtered = displayItems.where((k) {
+      final matchQuery = query.isEmpty ||
+          k.namaKategori.toLowerCase().contains(query) ||
+          (k.deskripsi?.toLowerCase().contains(query) ?? false);
+      return matchQuery;
+    }).toList();
+
     return ListView.builder(
-      itemCount: state.items.length,
+      itemCount: filtered.length,
       itemBuilder: (context, i) {
-        final kategori = state.items[i];
+        final kategori = filtered[i];
         return KategoriCard(
           kategori: kategori,
           onEdit: () => _openForm(initial: kategori),

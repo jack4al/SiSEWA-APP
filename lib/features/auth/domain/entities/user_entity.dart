@@ -18,6 +18,5 @@ class UserEntity {
   });
 
   bool get isAdminOrmawa => role == 'admin_ormawa';
-  bool get isAdminSiswa => role == 'admin_siswa';
   bool get isPenyewa => role == 'penyewa';
 }

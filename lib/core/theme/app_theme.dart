@@ -5,46 +5,64 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
-  // ===== TEXT STYLES =====
   static const TextTheme _textTheme = TextTheme(
     displayLarge: TextStyle(
       fontSize: 32,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w800,
       color: AppColors.textPrimary,
+      letterSpacing: -0.5,
     ),
     headlineLarge: TextStyle(
-      fontSize: 24,
-      fontWeight: FontWeight.w700,
+      fontSize: 26,
+      fontWeight: FontWeight.w800,
       color: AppColors.textPrimary,
+      letterSpacing: -0.4,
     ),
     headlineMedium: TextStyle(
       fontSize: 20,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       color: AppColors.textPrimary,
+      letterSpacing: -0.2,
     ),
     titleLarge: TextStyle(
       fontSize: 18,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       color: AppColors.textPrimary,
     ),
     titleMedium: TextStyle(
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: FontWeight.w600,
       color: AppColors.textPrimary,
     ),
-    bodyLarge: TextStyle(fontSize: 15, color: AppColors.textPrimary),
-    bodyMedium: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-    bodySmall: TextStyle(fontSize: 12, color: AppColors.textHint),
+    bodyLarge: TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w400,
+      color: AppColors.textPrimary,
+      height: 1.5,
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+      color: AppColors.textSecondary,
+      height: 1.45,
+    ),
+    bodySmall: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      color: AppColors.textHint,
+    ),
     labelLarge: TextStyle(
       fontSize: 14,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       color: AppColors.textOnPrimary,
+      letterSpacing: 0.1,
     ),
   );
 
-  // ===== LIGHT THEME =====
   static ThemeData light = ThemeData(
     useMaterial3: true,
+    fontFamily: 'Segoe UI',
+    fontFamilyFallback: const ['Plus Jakarta Sans', 'Inter', 'Roboto', 'sans-serif'],
     brightness: Brightness.light,
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: AppColors.background,
@@ -65,56 +83,56 @@ class AppTheme {
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       ),
     ),
 
-    // Input Decoration (TextFormField)
+    // Input Decoration (Pill-shaped in Donezo)
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(24),
         borderSide: const BorderSide(color: AppColors.border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(24),
         borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(24),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(24),
         borderSide: const BorderSide(color: AppColors.error),
       ),
       hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
       labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
     ),
 
-    // Elevated Button
+    // Elevated Button (Pill Button in Donezo)
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textOnPrimary,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
       ),
     ),
 
-    // Card
+    // Card (18px Radius in Donezo)
     cardTheme: CardThemeData(
       color: AppColors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: AppColors.border, width: 1),
       ),
     ),
 

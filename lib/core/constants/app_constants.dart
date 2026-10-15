@@ -10,7 +10,6 @@ class AppConstants {
 
   // ===== USER ROLES =====
   static const String roleAdminOrmawa = 'admin_ormawa';
-  static const String roleAdminSiswa = 'admin_siswa';
   static const String rolePenyewa = 'penyewa';
 
   // ===== STATUS UMUM =====
