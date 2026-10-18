@@ -1,4 +1,4 @@
-SISEWA (Sistem Informasi Penyewaan Barang & Inventaris)
+SISEWA (Sistem Informasi Penyewaan Barang)
 
 Disusun Oleh :
 1. Irwansyah Ragil W. S - 25082010191

@@ -34,13 +34,13 @@ class AppMenus {
       label: 'Barang',
       icon: Icons.inventory_2_outlined,
       route: '/barang',
-      allowedRoles: [AppConstants.roleAdminOrmawa],
+      allowedRoles: [AppConstants.roleAdminOrmawa, AppConstants.roleSuperAdmin],
     ),
     MenuItem(
       label: 'Kategori',
       icon: Icons.category_outlined,
       route: '/kategori',
-      allowedRoles: [AppConstants.roleAdminOrmawa],
+      allowedRoles: [AppConstants.roleAdminOrmawa, AppConstants.roleSuperAdmin],
     ),
     MenuItem(
       label: 'Penyewaan',
@@ -51,7 +51,7 @@ class AppMenus {
       label: 'Pengembalian',
       icon: Icons.assignment_return_outlined,
       route: '/pengembalian',
-      allowedRoles: [AppConstants.roleAdminOrmawa],
+      allowedRoles: [AppConstants.roleAdminOrmawa, AppConstants.roleSuperAdmin],
     ),
     MenuItem(
       label: 'Pembayaran',
@@ -62,7 +62,7 @@ class AppMenus {
       label: 'Laporan',
       icon: Icons.bar_chart_outlined,
       route: '/laporan',
-      allowedRoles: [AppConstants.roleAdminOrmawa],
+      allowedRoles: [AppConstants.roleAdminOrmawa, AppConstants.roleSuperAdmin],
     ),
     MenuItem(
       label: 'Pesan',

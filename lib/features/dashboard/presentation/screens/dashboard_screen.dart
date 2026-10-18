@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/sisewa_data_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/presentation/providers/profile_provider.dart';
 import '../../../inventory/presentation/providers/barang_provider.dart';
 import '../../../inventory/presentation/providers/kategori_provider.dart';
@@ -12,27 +14,45 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState is AuthAuthenticated ? authState.user : null;
     final profile = ref.watch(profileProvider).asData?.value;
-    final ormawaName = (profile?.namaOrganisasi != null && profile!.namaOrganisasi!.trim().isNotEmpty)
-        ? profile.namaOrganisasi!.trim()
-        : 'BEM Fakultas Teknik';
+    final adminOrg = profile?.namaOrganisasi?.trim() ?? '';
+    final adminSingkatan = profile?.singkatanOrganisasi?.trim() ?? '';
+    final isAdminOrmawa = user?.role == AppConstants.roleAdminOrmawa;
+
+    bool isMatchOrmawa(String targetOrg) {
+      if (!isAdminOrmawa) return true;
+      if (adminOrg.isEmpty && adminSingkatan.isEmpty) return false;
+
+      final t = targetOrg.toLowerCase().trim();
+      final o = adminOrg.toLowerCase().trim();
+      final s = adminSingkatan.toLowerCase().trim();
+
+      if (t.isEmpty) return false;
+
+      if (o.isNotEmpty && (t.contains(o) || o.contains(t))) return true;
+      if (s.isNotEmpty && (t.contains(s) || s.contains(t))) return true;
+
+      final isBemTarget = t.contains('bem') || t.contains('badan eksekutif');
+      final isBemAdmin = o.contains('bem') || o.contains('badan eksekutif') || s.contains('bem');
+      if (isBemTarget && isBemAdmin) return true;
+
+      final isHmtiTarget = t.contains('hmti') || t.contains('teknik informatika') || t.contains('teknologi informasi') || RegExp(r'\bti\b').hasMatch(t);
+      final isHmtiAdmin = o.contains('hmti') || o.contains('teknik informatika') || o.contains('teknologi informasi') || s.contains('hmti') || RegExp(r'\bti\b').hasMatch(o) || RegExp(r'\bti\b').hasMatch(s);
+      if (isHmtiTarget && isHmtiAdmin) return true;
+
+      final isMmTarget = t.contains('multimedia');
+      final isMmAdmin = o.contains('multimedia') || s.contains('multimedia');
+      if (isMmTarget && isMmAdmin) return true;
+
+      return false;
+    }
 
     final syncState = ref.watch(sisewaSyncProvider);
 
     // Filter aset & barang khusus milik ormawa ini
-    var ormawaBarang = syncState.barangList.where((b) {
-      final unitLower = b.unitOrmawa.toLowerCase();
-      final orgLower = ormawaName.toLowerCase();
-      return unitLower.contains(orgLower) || orgLower.contains(unitLower) ||
-          (orgLower.contains('bem') && unitLower.contains('bem'));
-    }).toList();
-
-    if (ormawaBarang.isEmpty) {
-      ormawaBarang = syncState.barangList.where((b) => b.unitOrmawa.contains('BEM')).toList();
-    }
-    if (ormawaBarang.isEmpty) {
-      ormawaBarang = syncState.barangList;
-    }
+    final ormawaBarang = syncState.barangList.where((b) => isMatchOrmawa(b.unitOrmawa)).toList();
 
     final totalJenis = ormawaBarang.length;
     final totalStok = ormawaBarang.fold<int>(0, (sum, b) => sum + b.stokTotal);
@@ -40,12 +60,7 @@ class DashboardScreen extends ConsumerWidget {
     final totalDipinjam = ormawaBarang.fold<int>(0, (sum, b) => sum + b.stokDipinjam);
 
     // Filter aktivitas peminjaman khusus untuk ormawa ini
-    final ormawaSewa = syncState.sewaList.where((s) {
-      final tujuanLower = s.ormawaTujuan.toLowerCase();
-      final orgLower = ormawaName.toLowerCase();
-      return tujuanLower.contains(orgLower) || orgLower.contains(tujuanLower) ||
-          (orgLower.contains('bem') && tujuanLower.contains('bem'));
-    }).toList();
+    final ormawaSewa = syncState.sewaList.where((s) => isMatchOrmawa(s.ormawaTujuan)).toList();
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -58,10 +73,6 @@ class DashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== 1. DONEZO HEADER & ACTION PILL =====
-            _buildDonezoHeader(context, ref, ormawaName),
-            const SizedBox(height: 24),
-
             // ===== 2. TOP 3 METRIC STAT CARDS =====
             _buildDonezoMetricCards(
               totalJenis: totalJenis,
@@ -113,35 +124,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   // ============================================================
-  // 1. DONEZO HEADER & ACTION PILLS
-  // ============================================================
-  Widget _buildDonezoHeader(BuildContext context, WidgetRef ref, String ormawaName) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Dashboard Inventaris',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
-            letterSpacing: -0.6,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Kelola inventaris, pantau penyewaan aktif, dan ketersediaan aset milik $ormawaName.',
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // 2. TOP 3 METRIC STAT CARDS (Donezo Style with Circular Arrow)
+  // 1. TOP 3 METRIC STAT CARDS (Donezo Style with Circular Arrow)
   // ============================================================
   Widget _buildDonezoMetricCards({
     required int totalJenis,
@@ -611,18 +594,32 @@ class DashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
 
-          ...List.generate(items.length, (idx) {
-            final item = items[idx];
-            final iconColor = colors[idx % colors.length];
-            final icon = icons[idx % icons.length];
+          if (items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  'Belum ada barang inventaris ditambahkan',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            )
+          else
+            ...List.generate(items.length, (idx) {
+              final item = items[idx];
+              final iconColor = colors[idx % colors.length];
+              final icon = icons[idx % icons.length];
 
-            return _buildProjectItemRow(
-              icon: icon,
-              iconColor: iconColor,
-              title: item.namaBarang,
-              dueDate: 'Tersedia: ${item.stokTersedia}/${item.stokTotal} unit • ${item.kategori}',
-            );
-          }),
+              return _buildProjectItemRow(
+                icon: icon,
+                iconColor: iconColor,
+                title: item.namaBarang,
+                dueDate: 'Tersedia: ${item.stokTersedia}/${item.stokTotal} unit • ${item.kategori}',
+              );
+            }),
         ],
       ),
     );

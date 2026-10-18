@@ -287,6 +287,26 @@ class _CivitasDashboardScreenState
                       return;
                     }
 
+                    if (tglKembali.isBefore(tglMulai)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tanggal pengembalian tidak boleh sebelum tanggal mulai!'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (jumlah > barang.stokTersedia) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Jumlah ($jumlah) melebihi stok tersedia (${barang.stokTersedia})!'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      return;
+                    }
+
                     ref.read(sisewaSyncProvider.notifier).ajukanSewaBaru(
                           barang: barang,
                           namaPenyewa: namaCtrl.text.trim(),
@@ -376,23 +396,6 @@ class _CivitasDashboardScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ===== HEADER =====
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Halo, ${user?.namaLengkap ?? "Civitas Mahasiswa"}! 👋',
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.6),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Jelajahi aset ormawa kampus, ajukan sewa dengan mudah, tanpa uang muka (DP). Pelunasan setelah pengembalian.',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
           // ===== STATS CARDS CIVITAS (2 CARDS: AKTIF & MENUNGGU) =====
           LayoutBuilder(
             builder: (context, constraints) {

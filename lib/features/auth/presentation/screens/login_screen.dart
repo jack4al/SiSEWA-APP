@@ -258,6 +258,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           height: 1.4,
                         ),
                       ),
+                      const SizedBox(height: 24),
+
                       // Peringatan Login Error
                       if (authState is AuthError) ...[
                         Container(

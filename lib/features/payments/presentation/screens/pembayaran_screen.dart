@@ -492,12 +492,14 @@ class _PembayaranScreenState extends ConsumerState<PembayaranScreen> {
 
     bool isMatchOrmawa(String targetOrg, String? metode) {
       if (!isAdminOrmawa) return true;
-      if (adminOrg.isEmpty && adminSingkatan.isEmpty) return true;
+      if (adminOrg.isEmpty && adminSingkatan.isEmpty) return false;
 
       final t = targetOrg.toLowerCase().trim();
       final m = (metode ?? '').toLowerCase().trim();
       final o = adminOrg.toLowerCase().trim();
       final s = adminSingkatan.toLowerCase().trim();
+
+      if (t.isEmpty && m.isEmpty) return false;
 
       if (o.isNotEmpty && (t.contains(o) || o.contains(t) || m.contains(o))) return true;
       if (s.isNotEmpty && (t.contains(s) || s.contains(t) || m.contains(s))) return true;
@@ -506,8 +508,8 @@ class _PembayaranScreenState extends ConsumerState<PembayaranScreen> {
       final isBemAdmin = o.contains('bem') || o.contains('badan eksekutif') || s.contains('bem');
       if (isBemTarget && isBemAdmin) return true;
 
-      final isHmtiTarget = t.contains('hmti') || t.contains('ti') || t.contains('informatika') || m.contains('hmti');
-      final isHmtiAdmin = o.contains('hmti') || o.contains('ti') || o.contains('informatika') || s.contains('hmti');
+      final isHmtiTarget = t.contains('hmti') || t.contains('teknik informatika') || t.contains('teknologi informasi') || m.contains('hmti') || RegExp(r'\bti\b').hasMatch(t);
+      final isHmtiAdmin = o.contains('hmti') || o.contains('teknik informatika') || o.contains('teknologi informasi') || s.contains('hmti') || RegExp(r'\bti\b').hasMatch(o) || RegExp(r'\bti\b').hasMatch(s);
       if (isHmtiTarget && isHmtiAdmin) return true;
 
       final isMmTarget = t.contains('multimedia') || m.contains('multimedia');
@@ -517,19 +519,16 @@ class _PembayaranScreenState extends ConsumerState<PembayaranScreen> {
       return false;
     }
 
-    var list = allBayar.where((item) {
+    final list = allBayar.where((item) {
+      if (item.unitOrmawa.isNotEmpty) {
+        return isMatchOrmawa(item.unitOrmawa, item.metodePembayaran);
+      }
       final sewa = syncState.sewaList.where((s) => s.kodeSewa == item.kodeSewa).firstOrNull;
       if (sewa != null) {
         return isMatchOrmawa(sewa.ormawaTujuan, item.metodePembayaran);
       }
       return isMatchOrmawa(item.metodePembayaran, item.metodePembayaran);
     }).toList();
-
-    // Fallback: Jika setelah filter ormawa hasilnya kosong namun allBayar ada isinya,
-    // tampilkan allBayar agar admin tetap bisa melihat & mengonfirmasi pembayaran
-    if (list.isEmpty && allBayar.isNotEmpty) {
-      list = allBayar;
-    }
 
     final query = _searchCtrl.text.toLowerCase().trim();
     final filtered = list.where((item) {

@@ -436,6 +436,7 @@ class _CivitasPembayaranScreenState
                     : 'menunggu_pembayaran'),
             nomorRef: 'INV-${s.kodeSewa}',
             catatan: 'Tagihan sewa ${s.namaBarang} ke ${s.ormawaTujuan}',
+            unitOrmawa: s.ormawaTujuan,
           ),
         );
         existingKodeSewa.add(s.kodeSewa);

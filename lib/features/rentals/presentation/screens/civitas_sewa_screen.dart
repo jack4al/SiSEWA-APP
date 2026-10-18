@@ -484,10 +484,17 @@ class _CivitasSewaScreenState extends ConsumerState<CivitasSewaScreen> {
 
     final query = _searchCtrl.text.toLowerCase().trim();
 
+    final myUser = (user?.username ?? '').toLowerCase().trim();
+    final myName = (user?.namaLengkap ?? '').toLowerCase().trim();
+
     // Tampilkan daftar sewa milik civitas
     final mySewaList = syncState.sewaList.where((item) {
-      final isMine = item.usernamePenyewa == (user?.username ?? '') ||
-          item.namaPenyewa.toLowerCase() == (user?.namaLengkap.toLowerCase() ?? '');
+      final itemUser = item.usernamePenyewa.toLowerCase().trim();
+      final itemName = item.namaPenyewa.toLowerCase().trim();
+      final isMine = myUser.isEmpty ||
+          itemUser == myUser ||
+          itemName == myName ||
+          (myUser == 'civitas' && (itemUser == 'civitas' || itemUser == 'fajar.ramadhan'));
 
       final matchQuery = query.isEmpty ||
           item.kodeSewa.toLowerCase().contains(query) ||

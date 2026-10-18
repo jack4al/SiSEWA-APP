@@ -6,6 +6,7 @@ import '../../features/auth/domain/entities/user_entity.dart';
 class AppTopbar extends StatelessWidget {
   final UserEntity? user;
   final String? namaOrganisasi;
+  final String? activeRoute;
   final VoidCallback? onToggleSidebar;
   final VoidCallback onProfileTap;
   final VoidCallback onLogoutTap;
@@ -15,6 +16,7 @@ class AppTopbar extends StatelessWidget {
     super.key,
     required this.user,
     this.namaOrganisasi,
+    this.activeRoute,
     required this.onProfileTap,
     required this.onLogoutTap,
     this.onToggleSidebar,
@@ -32,6 +34,56 @@ class AppTopbar extends StatelessWidget {
     return baseName;
   }
 
+  String _getTitle() {
+    final route = activeRoute ?? '/dashboard';
+    if (route == '/dashboard') {
+      final name = user?.namaLengkap.trim();
+      final displayName = (name != null && name.isNotEmpty) ? name : 'Civitas';
+      return 'Halo, $displayName! 👋';
+    }
+
+    return switch (route) {
+      '/barang' => 'Katalog & Inventaris Barang',
+      '/kategori' => 'Kategori Barang',
+      '/penyewaan' => user?.isPenyewa == true ? 'Penyewaan Saya' : 'Daftar Penyewaan',
+      '/pengembalian' => 'Pengembalian & Denda',
+      '/pembayaran' => user?.isPenyewa == true ? 'Pembayaran Saya' : 'Verifikasi Pembayaran',
+      '/laporan' => 'Laporan & Rekapitulasi',
+      '/chat' => 'Pesan & Konsultasi',
+      '/profil' => 'Profil Pengguna',
+      _ => 'SISEWA',
+    };
+  }
+
+  String _getSubtitle() {
+    final route = activeRoute ?? '/dashboard';
+    if (route == '/dashboard') {
+      if (user?.isPenyewa == true) {
+        return 'Jelajahi aset ormawa kampus, ajukan sewa dengan mudah.';
+      }
+      final org = (namaOrganisasi != null && namaOrganisasi!.trim().isNotEmpty)
+          ? namaOrganisasi!.trim()
+          : 'Ormawa Kampus';
+      return 'Kelola inventaris dan operasional aset milik $org';
+    }
+
+    return switch (route) {
+      '/barang' => 'Kelola stok, harga sewa, dan kondisi fisik aset',
+      '/kategori' => 'Kelola klasifikasi perlengkapan aset ormawa',
+      '/penyewaan' => user?.isPenyewa == true
+          ? 'Pantau permohonan dan jadwal sewa aktif Anda'
+          : 'Kelola permohonan sewa masuk dan jadwal pinjam',
+      '/pengembalian' => 'Inspeksi kondisi fisik barang & kalkulasi denda otomatis',
+      '/pembayaran' => user?.isPenyewa == true
+          ? 'Unggah bukti bayar dan periksa tagihan sewa'
+          : 'Verifikasi bukti transfer, QRIS, dan setoran tunai',
+      '/laporan' => 'Statistik transaksi sewa dan rekapitulasi kas ormawa',
+      '/chat' => 'Komunikasi langsung seputar sewa & koordinasi barang',
+      '/profil' => 'Informasi akun dan manajemen sesi Anda',
+      _ => 'Sistem Informasi Penyewaan Barang & Inventaris Ormawa',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -42,17 +94,53 @@ class AppTopbar extends StatelessWidget {
         children: [
           // Toggle sidebar button (mobile/desktop responsive)
           if (onToggleSidebar != null) ...[
-            IconButton(
-              icon: const Icon(Icons.menu_rounded, size: 22),
-              color: AppColors.textPrimary,
-              tooltip: 'Toggle sidebar',
-              onPressed: onToggleSidebar,
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.menu_rounded, size: 20),
+                color: AppColors.textPrimary,
+                tooltip: 'Toggle sidebar',
+                onPressed: onToggleSidebar,
+              ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 14),
           ],
 
-          // Spacer menggantikan search bar atas sehingga bersih di semua halaman
-          const Spacer(),
+          // Title & Greeting next to toggle sidebar
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _getTitle(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.4,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _getSubtitle(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
 
           // ===== 2. CIRCULAR ACTION BUTTONS =====
           _buildCircleIconButton(
@@ -132,29 +220,36 @@ class AppTopbar extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
 
-                // Name and email/role
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _buildDisplayName(),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                // Name and email/role with width constraint to prevent overflow
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 180),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _buildDisplayName(),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Text(
-                      (user?.email != null && user!.email!.trim().isNotEmpty)
-                          ? user!.email!
-                          : '-',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
+                      Text(
+                        (user?.email != null && user!.email!.trim().isNotEmpty)
+                            ? user!.email!
+                            : '-',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

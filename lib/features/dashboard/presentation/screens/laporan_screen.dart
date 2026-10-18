@@ -136,20 +136,41 @@ class _LaporanScreenState extends ConsumerState<LaporanScreen> {
     final user = authState is AuthAuthenticated ? authState.user : null;
     final profile = ref.watch(profileProvider).asData?.value;
     final adminOrg = profile?.namaOrganisasi?.trim() ?? '';
+    final adminSingkatan = profile?.singkatanOrganisasi?.trim() ?? '';
     final isAdminOrmawa = user?.role == AppConstants.roleAdminOrmawa;
 
-    final sewaList = syncState.sewaList.where((item) {
-      if (!isAdminOrmawa || adminOrg.isEmpty) return true;
-      final t = item.ormawaTujuan.toLowerCase();
-      final o = adminOrg.toLowerCase();
-      return t.contains(o) ||
-          o.contains(t) ||
-          (o.contains('bem') && t.contains('bem')) ||
-          (o.contains('hmti') && t.contains('hmti')) ||
-          (o.contains('multimedia') && t.contains('multimedia'));
-    }).toList();
-    final bayarList = syncState.bayarList;
-    final kembaliList = syncState.kembaliList;
+    bool isMatchOrmawa(String targetOrg) {
+      if (!isAdminOrmawa) return true;
+      if (adminOrg.isEmpty && adminSingkatan.isEmpty) return false;
+
+      final t = targetOrg.toLowerCase().trim();
+      final o = adminOrg.toLowerCase().trim();
+      final s = adminSingkatan.toLowerCase().trim();
+
+      if (t.isEmpty) return false;
+
+      if (o.isNotEmpty && (t.contains(o) || o.contains(t))) return true;
+      if (s.isNotEmpty && (t.contains(s) || s.contains(t))) return true;
+
+      final isBemTarget = t.contains('bem') || t.contains('badan eksekutif');
+      final isBemAdmin = o.contains('bem') || o.contains('badan eksekutif') || s.contains('bem');
+      if (isBemTarget && isBemAdmin) return true;
+
+      final isHmtiTarget = t.contains('hmti') || t.contains('teknik informatika') || t.contains('teknologi informasi') || RegExp(r'\bti\b').hasMatch(t);
+      final isHmtiAdmin = o.contains('hmti') || o.contains('teknik informatika') || o.contains('teknologi informasi') || s.contains('hmti') || RegExp(r'\bti\b').hasMatch(o) || RegExp(r'\bti\b').hasMatch(s);
+      if (isHmtiTarget && isHmtiAdmin) return true;
+
+      final isMmTarget = t.contains('multimedia');
+      final isMmAdmin = o.contains('multimedia') || s.contains('multimedia');
+      if (isMmTarget && isMmAdmin) return true;
+
+      return false;
+    }
+
+    final sewaList = syncState.sewaList.where((item) => isMatchOrmawa(item.ormawaTujuan)).toList();
+    final bayarList = syncState.bayarList.where((b) => isMatchOrmawa(b.unitOrmawa)).toList();
+    final kembaliList = syncState.kembaliList.where((k) => isMatchOrmawa(k.unitOrmawa)).toList();
+    final ormawaBarangList = syncState.barangList.where((b) => isMatchOrmawa(b.unitOrmawa)).toList();
 
     // Mapping log rekapitulasi secara tersinkronisasi
     final rekapList = sewaList.map((s) {
@@ -338,7 +359,7 @@ class _LaporanScreenState extends ConsumerState<LaporanScreen> {
           const SizedBox(height: 20),
 
           // ===== ANALYTICS BREAKDOWN SECTION =====
-          _buildAssetPerformanceCard(syncState.barangList),
+          _buildAssetPerformanceCard(ormawaBarangList),
           const SizedBox(height: 24),
 
           // ===== REKAP TRANSAKSI TABLE / LIST =====

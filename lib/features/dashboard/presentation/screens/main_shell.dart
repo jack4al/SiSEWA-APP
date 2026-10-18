@@ -65,6 +65,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                 AppTopbar(
                   user: user,
                   namaOrganisasi: profile?.namaOrganisasi,
+                  activeRoute: _activeRoute,
                   onToggleSidebar: () =>
                       setState(() => _sidebarCollapsed = !_sidebarCollapsed),
                   onProfileTap: () => setState(() => _activeRoute = '/profil'),

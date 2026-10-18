@@ -40,14 +40,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final t = targetOrg.toLowerCase().trim();
     final q = queryOrg.toLowerCase().trim();
 
+    if (t.isEmpty || q.isEmpty) return false;
+
     if (t == q || t.contains(q) || q.contains(t)) return true;
 
     final isTargetBem = t.contains('bem') || t.contains('badan eksekutif');
     final isQueryBem = q.contains('bem') || q.contains('badan eksekutif');
     if (isTargetBem && isQueryBem) return true;
 
-    final isTargetHmti = t.contains('hmti') || t.contains('ti') || t.contains('informatika');
-    final isQueryHmti = q.contains('hmti') || q.contains('ti') || q.contains('informatika');
+    final isTargetHmti = t.contains('hmti') || t.contains('teknik informatika') || t.contains('teknologi informasi') || RegExp(r'\bti\b').hasMatch(t);
+    final isQueryHmti = q.contains('hmti') || q.contains('teknik informatika') || q.contains('teknologi informasi') || RegExp(r'\bti\b').hasMatch(q);
     if (isTargetHmti && isQueryHmti) return true;
 
     final isTargetMm = t.contains('multimedia');
@@ -222,8 +224,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             m.senderUsername.toLowerCase() == myUser ||
             m.receiverUsername.toLowerCase() == myUser ||
             m.senderName.toLowerCase() == myName ||
-            (myUser != 'annisa.rahma' &&
-                myUser != 'dewi.ang' &&
+            ((myUser == 'civitas' || myUser == 'fajar.ramadhan') &&
                 (m.senderUsername == 'fajar.ramadhan' ||
                     m.receiverUsername == 'fajar.ramadhan'));
         return matchesOrmawa && isMyChat;

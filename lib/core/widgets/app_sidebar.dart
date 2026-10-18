@@ -46,23 +46,27 @@ class AppSidebar extends StatelessWidget {
             height: 76,
             padding: EdgeInsets.symmetric(horizontal: collapsed ? 16 : 24),
             alignment: collapsed ? Alignment.center : Alignment.centerLeft,
-            child: Row(
-              children: [
-                _buildConcentricLogo(),
-                if (!collapsed) ...[
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Sisewa',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.3,
-                    ),
+            child: collapsed
+                ? Center(child: _buildConcentricLogo())
+                : Row(
+                    children: [
+                      _buildConcentricLogo(),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Sisewa',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                            letterSpacing: -0.3,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ],
-            ),
           ),
 
           // ===== 2. SCROLLABLE MENU LIST =====
@@ -158,60 +162,72 @@ class AppSidebar extends StatelessWidget {
 
   /// Item menu dengan indikator pill di tepi kiri sesuai Donezo
   Widget _buildDonezoMenuItem(MenuItem menu, bool isActive) {
+    final title = isPenyewa
+        ? (menu.route == '/dashboard'
+            ? 'Katalog Sewa'
+            : menu.route == '/penyewaan'
+                ? 'Sewa Saya'
+                : menu.route == '/pembayaran'
+                    ? 'Pembayaran Saya'
+                    : menu.route == '/chat'
+                        ? 'Chat Ormawa'
+                        : menu.label)
+        : (menu.route == '/chat' ? 'Chat Penyewa' : menu.label);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
-        onTap: () => onMenuTap(menu.route),
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          height: 44,
-          padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 12),
-          child: Row(
-            children: [
-              // Active Indicator Pill (Gaya Donezo)
-              if (isActive && !collapsed)
-                Container(
-                  width: 3.5,
-                  height: 20,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                )
-              else if (!collapsed)
-                const SizedBox(width: 15.5),
-
-              Icon(
-                menu.icon,
-                size: 20,
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
-              ),
-              if (!collapsed) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    isPenyewa
-                        ? (menu.route == '/dashboard'
-                            ? 'Katalog Sewa'
-                            : menu.route == '/penyewaan'
-                                ? 'Sewa Saya'
-                                : menu.route == '/pembayaran'
-                                    ? 'Pembayaran Saya'
-                                    : menu.route == '/chat'
-                                        ? 'Chat Ormawa'
-                                        : menu.label)
-                        : (menu.route == '/chat' ? 'Chat Penyewa' : menu.label),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                      color: isActive ? AppColors.textPrimary : AppColors.textSecondary,
+      child: Tooltip(
+        message: collapsed ? title : '',
+        child: InkWell(
+          onTap: () => onMenuTap(menu.route),
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            height: 44,
+            padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 12),
+            child: collapsed
+                ? Center(
+                    child: Icon(
+                      menu.icon,
+                      size: 20,
+                      color: isActive ? AppColors.primary : AppColors.textSecondary,
                     ),
-                    overflow: TextOverflow.ellipsis,
+                  )
+                : Row(
+                    children: [
+                      // Active Indicator Pill (Gaya Donezo)
+                      if (isActive)
+                        Container(
+                          width: 3.5,
+                          height: 20,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 15.5),
+
+                      Icon(
+                        menu.icon,
+                        size: 20,
+                        color: isActive ? AppColors.primary : AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                            color: isActive ? AppColors.textPrimary : AppColors.textSecondary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ],
           ),
         ),
       ),
@@ -227,52 +243,60 @@ class AppSidebar extends StatelessWidget {
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          height: 44,
-          padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 12),
-          child: Row(
-            children: [
-              if (isActive && !collapsed)
-                Container(
-                  width: 3.5,
-                  height: 20,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                )
-              else if (!collapsed)
-                const SizedBox(width: 15.5),
-
-              Icon(
-                icon,
-                size: 20,
-                color: isActive ? AppColors.primary : (color ?? AppColors.textSecondary),
-              ),
-              if (!collapsed) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                      color: isActive ? AppColors.textPrimary : (color ?? AppColors.textSecondary),
+      child: Tooltip(
+        message: collapsed ? label : '',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            height: 44,
+            padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 12),
+            child: collapsed
+                ? Center(
+                    child: Icon(
+                      icon,
+                      size: 20,
+                      color: isActive ? AppColors.primary : (color ?? AppColors.textSecondary),
                     ),
-                    overflow: TextOverflow.ellipsis,
+                  )
+                : Row(
+                    children: [
+                      if (isActive)
+                        Container(
+                          width: 3.5,
+                          height: 20,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 15.5),
+
+                      Icon(
+                        icon,
+                        size: 20,
+                        color: isActive ? AppColors.primary : (color ?? AppColors.textSecondary),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                            color: isActive ? AppColors.textPrimary : (color ?? AppColors.textSecondary),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ],
           ),
         ),
       ),
     );
   }
-
-
 }

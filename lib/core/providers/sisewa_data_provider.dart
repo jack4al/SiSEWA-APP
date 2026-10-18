@@ -111,6 +111,7 @@ class SyncPengembalian {
   double biayaKerusakan;
   String status; // 'menunggu_kembali', 'diterima', 'perlu_ganti_rugi'
   String? catatanInspeksi;
+  final String unitOrmawa;
 
   SyncPengembalian({
     required this.id,
@@ -126,6 +127,7 @@ class SyncPengembalian {
     required this.biayaKerusakan,
     required this.status,
     this.catatanInspeksi,
+    this.unitOrmawa = '',
   });
 }
 
@@ -140,9 +142,10 @@ class SyncPembayaran {
   final String jenisPembayaran; // 'Pelunasan Sewa', 'Ganti Rugi / Denda'
   String metodePembayaran; // 'QRIS Ormawa'
   final DateTime tanggalBayar;
-  String status; // 'lunas', 'menunggu_verifikasi', 'ditolak'
+  String status; // 'lunas', 'menunggu_verifikasi', 'ditolak', 'menunggu_pembayaran', 'batal'
   final String nomorRef;
   final String? catatan;
+  final String unitOrmawa;
 
   SyncPembayaran({
     required this.id,
@@ -158,6 +161,7 @@ class SyncPembayaran {
     required this.status,
     required this.nomorRef,
     this.catatan,
+    this.unitOrmawa = '',
   });
 }
 
@@ -423,6 +427,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
         biayaKerusakan: 0,
         status: 'menunggu_kembali',
         catatanInspeksi: 'Belum dikembalikan ke sekretariat ormawa',
+        unitOrmawa: 'BEM Fakultas Teknik',
       ),
       SyncPengembalian(
         id: '2',
@@ -438,6 +443,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
         biayaKerusakan: 50000,
         status: 'perlu_ganti_rugi',
         catatanInspeksi: 'Terlambat 1 hari. 1 mic baret di bagian switch. Menunggu verifikasi bukti ganti rugi.',
+        unitOrmawa: 'Himpunan Mahasiswa TI',
       ),
       SyncPengembalian(
         id: '3',
@@ -453,6 +459,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
         biayaKerusakan: 0,
         status: 'diterima',
         catatanInspeksi: 'Kondisi pasak & frame lengkap, bersih, siap disimpan kembali di gudang.',
+        unitOrmawa: 'Pramuka Racana',
       ),
     ];
 
@@ -471,6 +478,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
         status: 'lunas',
         nomorRef: 'QRIS-NMID-8849201',
         catatan: 'Pembayaran sewa proyektor seminar AI',
+        unitOrmawa: 'BEM Fakultas Teknik',
       ),
       SyncPembayaran(
         id: '2',
@@ -486,6 +494,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
         status: 'menunggu_verifikasi',
         nomorRef: 'QRIS-NMID-99238',
         catatan: 'Pelunasan sewa sound system & 2 mic setelah barang dikembalikan',
+        unitOrmawa: 'Himpunan Mahasiswa TI',
       ),
       SyncPembayaran(
         id: '3',
@@ -501,6 +510,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
         status: 'lunas',
         nomorRef: 'QRIS-NMID-01492',
         catatan: 'Diterima tunai di sekretariat ormawa saat serah terima tenda',
+        unitOrmawa: 'Pramuka Racana',
       ),
       SyncPembayaran(
         id: '4',
@@ -516,6 +526,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
         status: 'menunggu_verifikasi',
         nomorRef: 'QRIS-NMID-01823',
         catatan: 'Kompensasi perbaikan mic wireless baret & denda telat 1 hari',
+        unitOrmawa: 'Himpunan Mahasiswa TI',
       ),
     ];
 
@@ -650,7 +661,8 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
     required int jumlah,
   }) {
     final durasiHari = tglKembali.difference(tglMulai).inDays + 1;
-    final subtotalSewa = barang.hargaPerHari * jumlah * (durasiHari > 0 ? durasiHari : 1);
+    final safeDurasi = durasiHari > 0 ? durasiHari : 1;
+    final subtotalSewa = barang.hargaPerHari * jumlah * safeDurasi;
     final total = subtotalSewa + biayaLayananSisewa;
     final kodeSewa = 'SW-2026-00${state.sewaList.length + 1}';
 
@@ -670,26 +682,10 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
       tglKembali: tglKembali,
       totalHarga: total,
       status: 'menunggu',
-      statusBayar: 'Menunggu Pembayaran',
+      statusBayar: 'Menunggu Persetujuan Ormawa',
     );
 
-    // Otomatis buat entri pengembalian
-    final newKembali = SyncPengembalian(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      kodeSewa: kodeSewa,
-      namaPenyewa: namaPenyewa,
-      npm: npm,
-      namaBarang: '${barang.namaBarang} ($jumlah Unit)',
-      jumlah: jumlah,
-      tglRencanaKembali: tglKembali,
-      kondisiFisik: 'baik',
-      dendaKeterlambatan: 0,
-      biayaKerusakan: 0,
-      status: 'menunggu_kembali',
-      catatanInspeksi: 'Pengajuan sewa baru, menunggu verifikasi ormawa',
-    );
-
-    // Otomatis terbitkan tagihan pembayaran
+    // Terbitkan tagihan pembayaran terkait
     final newBayar = SyncPembayaran(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       kodePembayaran: 'PAY-2026-00${state.bayarList.length + 1}',
@@ -704,11 +700,12 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
       status: 'menunggu_pembayaran',
       nomorRef: 'INV-$kodeSewa',
       catatan: 'Tagihan sewa ${barang.namaBarang} ke ${barang.unitOrmawa}',
+      unitOrmawa: barang.unitOrmawa,
     );
 
+    // Pengembalian TIDAK dibuat sebelum disetujui (mencegah data hantu jika ditolak)
     state = state.copyWith(
       sewaList: [newSewa, ...state.sewaList],
-      kembaliList: [newKembali, ...state.kembaliList],
       bayarList: [newBayar, ...state.bayarList],
     );
   }
@@ -736,6 +733,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
       status: 'menunggu_verifikasi',
       nomorRef: nomorRef,
       catatan: catatan ?? 'Bukti pembayaran dikirimkan oleh civitas via aplikasi SISEWA',
+      unitOrmawa: sewa.ormawaTujuan,
     );
 
     // Update status bayar di sewaList
@@ -755,34 +753,138 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
   // ===== AKSI DARI SISI ORMAWA (ADMIN) =====
 
   /// Ormawa menyetujui pengajuan sewa civitas
-  void approveSewa(String id) {
+  bool approveSewa(String id) {
+    SyncPenyewaan? targetSewa;
+    for (final s in state.sewaList) {
+      if (s.id == id) {
+        targetSewa = s;
+        break;
+      }
+    }
+    if (targetSewa == null) return false;
+
+    // Cek ketersediaan stok
+    SyncBarang? targetBarang;
+    for (final b in state.barangList) {
+      if (b.id == targetSewa.barangId) {
+        targetBarang = b;
+        break;
+      }
+    }
+
+    if (targetBarang != null && targetBarang.stokTersedia < targetSewa.jumlah) {
+      // Stok tidak cukup, tidak bisa disetujui (mencegah overbooking)
+      return false;
+    }
+
+    // Kurangi stok barang secara immutable
+    final updatedBarangList = state.barangList.map((b) {
+      if (b.id == targetSewa!.barangId) {
+        final newTersedia = (b.stokTersedia - targetSewa.jumlah).clamp(0, b.stokTotal);
+        return SyncBarang(
+          id: b.id,
+          namaBarang: b.namaBarang,
+          kategori: b.kategori,
+          hargaPerHari: b.hargaPerHari,
+          stokTotal: b.stokTotal,
+          stokTersedia: newTersedia,
+          kondisi: b.kondisi,
+          deskripsi: b.deskripsi,
+          unitOrmawa: b.unitOrmawa,
+          fotoUrl: b.fotoUrl,
+        );
+      }
+      return b;
+    }).toList();
+
     final updatedSewa = state.sewaList.map((s) {
       if (s.id == id) {
         s.status = 'disetujui';
-        // Kurangi stok barang
-        for (var b in state.barangList) {
-          if (b.id == s.barangId && b.stokTersedia >= s.jumlah) {
-            b.stokTersedia -= s.jumlah;
-          }
+        if (s.statusBayar != 'Lunas' && s.statusBayar != 'Menunggu Verifikasi') {
+          s.statusBayar = 'Belum Bayar (Setelah Pengembalian)';
         }
       }
       return s;
     }).toList();
 
-    state = state.copyWith(sewaList: updatedSewa);
+    // Buat entri pengembalian otomatis setelah sewa resmi disetujui
+    final existingKembali = state.kembaliList.any((k) => k.kodeSewa == targetSewa!.kodeSewa);
+    List<SyncPengembalian> updatedKembali = state.kembaliList;
+    if (!existingKembali) {
+      final newKembali = SyncPengembalian(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        kodeSewa: targetSewa.kodeSewa,
+        namaPenyewa: targetSewa.namaPenyewa,
+        npm: targetSewa.npm,
+        namaBarang: targetSewa.namaBarang,
+        jumlah: targetSewa.jumlah,
+        tglRencanaKembali: targetSewa.tglKembali,
+        kondisiFisik: 'baik',
+        dendaKeterlambatan: 0,
+        biayaKerusakan: 0,
+        status: 'menunggu_kembali',
+        catatanInspeksi: 'Penyewaan telah disetujui, menunggu jadwal pengembalian barang.',
+        unitOrmawa: targetSewa.ormawaTujuan,
+      );
+      updatedKembali = [newKembali, ...state.kembaliList];
+    }
+
+    state = state.copyWith(
+      sewaList: updatedSewa,
+      barangList: updatedBarangList,
+      kembaliList: updatedKembali,
+    );
+    return true;
   }
 
   /// Ormawa menolak pengajuan sewa civitas
   void rejectSewa(String id) {
+    SyncPenyewaan? targetSewa;
     final updatedSewa = state.sewaList.map((s) {
       if (s.id == id) {
+        targetSewa = s;
         s.status = 'ditolak';
         s.statusBayar = 'Batal';
       }
       return s;
     }).toList();
 
-    state = state.copyWith(sewaList: updatedSewa);
+    List<SyncPengembalian> updatedKembali = state.kembaliList;
+    List<SyncPembayaran> updatedBayar = state.bayarList;
+
+    if (targetSewa != null) {
+      final kode = targetSewa!.kodeSewa;
+      // Hapus entri pengembalian jika ada
+      updatedKembali = state.kembaliList.where((k) => k.kodeSewa != kode).toList();
+      // Batalkan tagihan pembayaran yang belum lunas
+      updatedBayar = state.bayarList.map((b) {
+        if (b.kodeSewa == kode && b.status != 'lunas') {
+          return SyncPembayaran(
+            id: b.id,
+            kodePembayaran: b.kodePembayaran,
+            kodeSewa: b.kodeSewa,
+            namaPenyewa: b.namaPenyewa,
+            usernamePenyewa: b.usernamePenyewa,
+            npm: b.npm,
+            nominal: b.nominal,
+            jenisPembayaran: b.jenisPembayaran,
+            metodePembayaran: b.metodePembayaran,
+            tanggalBayar: b.tanggalBayar,
+            status: 'batal',
+            nomorRef: b.nomorRef,
+            catatan: 'Permohonan sewa ditolak oleh ormawa',
+            unitOrmawa: b.unitOrmawa,
+          );
+        }
+        return b;
+      }).toList();
+    }
+
+    state = state.copyWith(
+      sewaList: updatedSewa,
+      kembaliList: updatedKembali,
+      bayarList: updatedBayar,
+    );
   }
 
   /// Ormawa mencatat inspeksi fisik & penerimaan barang kembali
@@ -805,30 +907,45 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
       return k;
     }).toList();
 
-    // Pulihkan stok barang dan tandai sewa selesai
+    // Pulihkan stok barang secara immutable dan tandai sewa selesai
     SyncPenyewaan? targetSewa;
     final updatedSewa = state.sewaList.map((s) {
       if (s.kodeSewa == kodeSewa) {
         targetSewa = s;
         s.status = 'selesai';
-        if (s.statusBayar != 'Lunas') {
+        if (s.statusBayar != 'Lunas' && s.statusBayar != 'Menunggu Verifikasi') {
           s.statusBayar = 'Menunggu Pembayaran';
-        }
-        for (var b in state.barangList) {
-          if (b.id == s.barangId) {
-            b.stokTersedia = (b.stokTersedia + s.jumlah).clamp(0, b.stokTotal);
-          }
         }
       }
       return s;
     }).toList();
 
-    // Otomatis terbitkan / perbarui tagihan pembayaran pasca-pengembalian
     final sewaItem = targetSewa ??
         state.sewaList.firstWhere(
           (s) => s.kodeSewa == kodeSewa,
           orElse: () => state.sewaList.first,
         );
+
+    final updatedBarangList = state.barangList.map((b) {
+      if (b.id == sewaItem.barangId) {
+        final restored = (b.stokTersedia + sewaItem.jumlah).clamp(0, b.stokTotal);
+        return SyncBarang(
+          id: b.id,
+          namaBarang: b.namaBarang,
+          kategori: b.kategori,
+          hargaPerHari: b.hargaPerHari,
+          stokTotal: b.stokTotal,
+          stokTersedia: restored,
+          kondisi: b.kondisi,
+          deskripsi: b.deskripsi,
+          unitOrmawa: b.unitOrmawa,
+          fotoUrl: b.fotoUrl,
+        );
+      }
+      return b;
+    }).toList();
+
+    // Otomatis terbitkan / perbarui tagihan pembayaran pasca-pengembalian
     final totalTagihan = sewaItem.totalHarga + denda + biayaKerusakan;
 
     final existingBayarIndex =
@@ -856,6 +973,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
               : 'menunggu_pembayaran',
           nomorRef: existing.nomorRef,
           catatan: catatan.isNotEmpty ? catatan : existing.catatan,
+          unitOrmawa: sewaItem.ormawaTujuan,
         );
       }
     } else {
@@ -879,11 +997,13 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
             : (catatan.isNotEmpty
                 ? catatan
                 : 'Pelunasan sewa setelah pengembalian barang fisik ke ormawa'),
+        unitOrmawa: sewaItem.ormawaTujuan,
       );
       updatedBayarList.insert(0, newBayar);
     }
 
     state = state.copyWith(
+      barangList: updatedBarangList,
       kembaliList: updatedKembali,
       sewaList: updatedSewa,
       bayarList: updatedBayarList,
@@ -917,6 +1037,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
           status: 'menunggu_verifikasi',
           nomorRef: nomorRef,
           catatan: catatan ?? b.catatan,
+          unitOrmawa: b.unitOrmawa,
         );
       }
       return b;
@@ -944,6 +1065,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
           status: 'menunggu_verifikasi',
           nomorRef: nomorRef,
           catatan: catatan ?? 'Bukti pembayaran QRIS dikirimkan',
+          unitOrmawa: sewaMatch.ormawaTujuan,
         );
         updatedBayar.insert(0, newBayar);
       }
@@ -987,6 +1109,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
           status: 'lunas',
           nomorRef: b.nomorRef,
           catatan: b.catatan,
+          unitOrmawa: b.unitOrmawa,
         );
       }
       return b;
@@ -1014,6 +1137,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
           status: 'lunas',
           nomorRef: 'INV-${sewaMatch.kodeSewa}',
           catatan: 'Pembayaran diverifikasi lunas oleh ormawa',
+          unitOrmawa: sewaMatch.ormawaTujuan,
         );
         updatedBayar.insert(0, newBayar);
       }
@@ -1057,6 +1181,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
           status: 'ditolak',
           nomorRef: b.nomorRef,
           catatan: b.catatan,
+          unitOrmawa: b.unitOrmawa,
         );
       }
       return b;
@@ -1084,6 +1209,7 @@ class SisewaSyncNotifier extends Notifier<SisewaSyncState> {
           status: 'ditolak',
           nomorRef: 'INV-${sewaMatch.kodeSewa}',
           catatan: 'Pembayaran ditolak ormawa',
+          unitOrmawa: sewaMatch.ormawaTujuan,
         );
         updatedBayar.insert(0, newBayar);
       }

@@ -117,15 +117,25 @@ class _PenyewaanScreenState extends ConsumerState<PenyewaanScreen> {
                           ),
                         ),
                         onPressed: () {
-                          ref.read(sisewaSyncProvider.notifier).approveSewa(item.id);
+                          final success = ref.read(sisewaSyncProvider.notifier).approveSewa(item.id);
                           Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Pengajuan sewa disetujui! Stok inventaris otomatis berkurang.',
+                          if (!success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Gagal menyetujui: Stok barang inventaris tidak mencukupi!'),
+                                backgroundColor: AppColors.error,
                               ),
-                            ),
-                          );
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Pengajuan sewa disetujui! Stok inventaris otomatis berkurang.',
+                                ),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                          }
                         },
                         child: const Text('Setujui Pengajuan'),
                       ),
@@ -276,11 +286,13 @@ class _PenyewaanScreenState extends ConsumerState<PenyewaanScreen> {
 
     bool isMatchOrmawa(String targetOrg) {
       if (!isAdminOrmawa) return true;
-      if (adminOrg.isEmpty && adminSingkatan.isEmpty) return true;
+      if (adminOrg.isEmpty && adminSingkatan.isEmpty) return false;
 
       final t = targetOrg.toLowerCase().trim();
       final o = adminOrg.toLowerCase().trim();
       final s = adminSingkatan.toLowerCase().trim();
+
+      if (t.isEmpty) return false;
 
       if (o.isNotEmpty && (t.contains(o) || o.contains(t))) return true;
       if (s.isNotEmpty && (t.contains(s) || s.contains(t))) return true;
@@ -289,8 +301,8 @@ class _PenyewaanScreenState extends ConsumerState<PenyewaanScreen> {
       final isBemAdmin = o.contains('bem') || o.contains('badan eksekutif') || s.contains('bem');
       if (isBemTarget && isBemAdmin) return true;
 
-      final isHmtiTarget = t.contains('hmti') || t.contains('ti') || t.contains('informatika');
-      final isHmtiAdmin = o.contains('hmti') || o.contains('ti') || o.contains('informatika') || s.contains('hmti');
+      final isHmtiTarget = t.contains('hmti') || t.contains('teknik informatika') || t.contains('teknologi informasi') || RegExp(r'\bti\b').hasMatch(t);
+      final isHmtiAdmin = o.contains('hmti') || o.contains('teknik informatika') || o.contains('teknologi informasi') || s.contains('hmti') || RegExp(r'\bti\b').hasMatch(o) || RegExp(r'\bti\b').hasMatch(s);
       if (isHmtiTarget && isHmtiAdmin) return true;
 
       final isMmTarget = t.contains('multimedia');
@@ -300,13 +312,9 @@ class _PenyewaanScreenState extends ConsumerState<PenyewaanScreen> {
       return false;
     }
 
-    var sewaList = syncState.sewaList.where((item) {
+    final sewaList = syncState.sewaList.where((item) {
       return isMatchOrmawa(item.ormawaTujuan);
     }).toList();
-
-    if (sewaList.isEmpty && syncState.sewaList.isNotEmpty) {
-      sewaList = syncState.sewaList;
-    }
 
     final query = _searchCtrl.text.toLowerCase().trim();
     final filtered = sewaList.where((item) {

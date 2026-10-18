@@ -9,6 +9,7 @@ class AppConstants {
       'Kelola penyewaan barang ormawa dengan mudah';
 
   // ===== USER ROLES =====
+  static const String roleSuperAdmin = 'admin';
   static const String roleAdminOrmawa = 'admin_ormawa';
   static const String rolePenyewa = 'penyewa';
 

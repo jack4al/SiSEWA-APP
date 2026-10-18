@@ -209,10 +209,10 @@ class _PengembalianScreenState extends ConsumerState<PengembalianScreen> {
                     ),
                   ),
                   onPressed: () {
-                    final dendaVal =
-                        double.tryParse(dendaCtrl.text.trim()) ?? 0;
-                    final biayaVal =
-                        double.tryParse(biayaCtrl.text.trim()) ?? 0;
+                    final dendaClean = dendaCtrl.text.trim().replaceAll('.', '').replaceAll(',', '');
+                    final biayaClean = biayaCtrl.text.trim().replaceAll('.', '').replaceAll(',', '');
+                    final dendaVal = double.tryParse(dendaClean) ?? 0;
+                    final biayaVal = double.tryParse(biayaClean) ?? 0;
 
                     ref
                         .read(sisewaSyncProvider.notifier)
@@ -290,11 +290,13 @@ class _PengembalianScreenState extends ConsumerState<PengembalianScreen> {
 
     bool isMatchOrmawa(String targetOrg) {
       if (!isAdminOrmawa) return true;
-      if (adminOrg.isEmpty && adminSingkatan.isEmpty) return true;
+      if (adminOrg.isEmpty && adminSingkatan.isEmpty) return false;
 
       final t = targetOrg.toLowerCase().trim();
       final o = adminOrg.toLowerCase().trim();
       final s = adminSingkatan.toLowerCase().trim();
+
+      if (t.isEmpty) return false;
 
       if (o.isNotEmpty && (t.contains(o) || o.contains(t))) return true;
       if (s.isNotEmpty && (t.contains(s) || s.contains(t))) return true;
@@ -303,8 +305,8 @@ class _PengembalianScreenState extends ConsumerState<PengembalianScreen> {
       final isBemAdmin = o.contains('bem') || o.contains('badan eksekutif') || s.contains('bem');
       if (isBemTarget && isBemAdmin) return true;
 
-      final isHmtiTarget = t.contains('hmti') || t.contains('ti') || t.contains('informatika');
-      final isHmtiAdmin = o.contains('hmti') || o.contains('ti') || o.contains('informatika') || s.contains('hmti');
+      final isHmtiTarget = t.contains('hmti') || t.contains('teknik informatika') || t.contains('teknologi informasi') || RegExp(r'\bti\b').hasMatch(t);
+      final isHmtiAdmin = o.contains('hmti') || o.contains('teknik informatika') || o.contains('teknologi informasi') || s.contains('hmti') || RegExp(r'\bti\b').hasMatch(o) || RegExp(r'\bti\b').hasMatch(s);
       if (isHmtiTarget && isHmtiAdmin) return true;
 
       final isMmTarget = t.contains('multimedia');
@@ -314,15 +316,14 @@ class _PengembalianScreenState extends ConsumerState<PengembalianScreen> {
       return false;
     }
 
-    var list = syncState.kembaliList.where((item) {
+    final list = syncState.kembaliList.where((item) {
+      if (item.unitOrmawa.isNotEmpty) {
+        return isMatchOrmawa(item.unitOrmawa);
+      }
       final sewa = syncState.sewaList.where((s) => s.kodeSewa == item.kodeSewa).firstOrNull;
       if (sewa == null) return true;
       return isMatchOrmawa(sewa.ormawaTujuan);
     }).toList();
-
-    if (list.isEmpty && syncState.kembaliList.isNotEmpty) {
-      list = syncState.kembaliList;
-    }
 
     final query = _searchCtrl.text.toLowerCase().trim();
     final filtered = list.where((item) {

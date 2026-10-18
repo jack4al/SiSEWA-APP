@@ -314,45 +314,109 @@ class AppDatabase extends _$AppDatabase {
     await batch((b) {
       b.insertAll(level, [
         LevelCompanion.insert(
+          namaLevel: 'admin',
+          deskripsi: const Value('Super Administrator SISEWA'),
+        ),
+        LevelCompanion.insert(
           namaLevel: 'admin_ormawa',
           deskripsi: const Value('Admin pengelola ormawa'),
         ),
         LevelCompanion.insert(
           namaLevel: 'penyewa',
-          deskripsi: const Value('Penyewa barang'),
+          deskripsi: const Value('Penyewa barang (Civitas Mahasiswa)'),
         ),
       ]);
     });
 
-    // 2. Seed Admin default
-    await into(users).insert(
-      UsersCompanion.insert(
-        username: 'admin',
-        passwordHash: 'admin123',
-        namaLengkap: 'Administrator SISEWA',
-        role: 'admin_ormawa',
-      ),
-    );
-
-    // 3. Seed Kategori Barang
+    // 2. Seed Organisasi
     await batch((b) {
-      b.insertAll(kategoriBarang, [
-        KategoriBarangCompanion.insert(namaKategori: 'Elektronik'),
-        KategoriBarangCompanion.insert(namaKategori: 'Tenda & Camping'),
-        KategoriBarangCompanion.insert(namaKategori: 'Sound System'),
-        KategoriBarangCompanion.insert(namaKategori: 'Alat Masak'),
-        KategoriBarangCompanion.insert(namaKategori: 'Lainnya'),
+      b.insertAll(organisasi, [
+        OrganisasiCompanion.insert(
+          namaOrganisasi: 'Badan Eksekutif Mahasiswa Fakultas Teknik',
+          singkatan: 'BEM FT',
+          fakultas: const Value('Teknik'),
+        ),
+        OrganisasiCompanion.insert(
+          namaOrganisasi: 'Himpunan Mahasiswa Teknik Informatika',
+          singkatan: 'HMTI',
+          fakultas: const Value('Teknik'),
+        ),
+        OrganisasiCompanion.insert(
+          namaOrganisasi: 'UKM Multimedia',
+          singkatan: 'MULTIMEDIA',
+          fakultas: const Value('Universitas'),
+        ),
+        OrganisasiCompanion.insert(
+          namaOrganisasi: 'Pramuka Racana',
+          singkatan: 'PRAMUKA',
+          fakultas: const Value('Universitas'),
+        ),
       ]);
     });
 
-    // 4. Seed Organisasi contoh
-    await into(organisasi).insert(
-      OrganisasiCompanion.insert(
-        namaOrganisasi: 'Badan Eksekutif Mahasiswa',
-        singkatan: 'BEM',
-        fakultas: const Value('Teknik'),
+    // 3. Seed Users Default (3 Role: Super Admin, Admin Ormawa, Civitas)
+    final adminId = await into(users).insert(
+      UsersCompanion.insert(
+        username: 'admin',
+        passwordHash: 'admin123',
+        namaLengkap: 'Administrator BEM FT',
+        role: 'admin_ormawa',
+        email: const Value('bemft@student.upnjatim.ac.id'),
+        noTelepon: const Value('081234567890'),
       ),
     );
+
+    await into(userOrganisasi).insert(
+      UserOrganisasiCompanion.insert(
+        idUser: adminId,
+        idOrganisasi: 1,
+        jabatan: const Value('Koordinator Inventaris'),
+      ),
+    );
+
+    await into(users).insert(
+      UsersCompanion.insert(
+        username: 'superadmin',
+        passwordHash: 'super123',
+        namaLengkap: 'Administrator Utama SISEWA',
+        role: 'admin',
+        email: const Value('sisewa.admin@upnjatim.ac.id'),
+        noTelepon: const Value('081122334455'),
+      ),
+    );
+
+    final civitasId = await into(users).insert(
+      UsersCompanion.insert(
+        username: 'civitas',
+        passwordHash: 'civitas123',
+        namaLengkap: 'Fajar Ramadhan',
+        role: 'penyewa',
+        email: const Value('2110631170012@student.upnjatim.ac.id'),
+        noTelepon: const Value('081398765432'),
+      ),
+    );
+
+    await into(peminjam).insert(
+      PeminjamCompanion.insert(
+        idUser: civitasId,
+        nim: const Value('2110631170012'),
+        fakultas: const Value('Teknik'),
+        jurusan: const Value('Informatika'),
+        kontak: const Value('081398765432'),
+        email: const Value('2110631170012@student.upnjatim.ac.id'),
+      ),
+    );
+
+    // 4. Seed Kategori Barang
+    await batch((b) {
+      b.insertAll(kategoriBarang, [
+        KategoriBarangCompanion.insert(namaKategori: 'Elektronik & Audio'),
+        KategoriBarangCompanion.insert(namaKategori: 'Tenda & Outdoor'),
+        KategoriBarangCompanion.insert(namaKategori: 'Kamera & Multimedia'),
+        KategoriBarangCompanion.insert(namaKategori: 'Alat Musik & Konser'),
+        KategoriBarangCompanion.insert(namaKategori: 'Perlengkapan Acara'),
+      ]);
+    });
   }
 }
 
