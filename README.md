@@ -37,7 +37,7 @@ Aplikasi ini mendigitalisasi proses peminjaman peralatan, pencegahan bentrok jad
 
 ### 6. Pembayaran Pasca-Pengembalian (Post-Return Payment)
 * **Tagihan Final Akurat:** Invoice tagihan diterbitkan setelah barang dikembalikan dan diperiksa, mencakup biaya sewa pokok serta denda keterlambatan (jika ada).
-* **Multi-Channel & Upload Bukti:** Informasi nomor rekening bank / QRIS ormawa, fitur unggah struk bukti transfer, serta panel verifikasi pelunasan kas masuk oleh bendahara ormawa.
+* **Multi-Channel & Upload Bukti:** Informasi QRIS ormawa, fitur unggah struk bukti transfer, serta panel verifikasi pelunasan kas masuk oleh bendahara ormawa.
 
 ### 7. Fitur Pesan & Konsultasi Real-Time (Chat)
 * **In-App Messaging:** Jalur komunikasi langsung di dalam aplikasi antara mahasiswa dan pengurus ormawa untuk koordinasi pengambilan alat, pengecekan ketersediaan fisik, maupun janji temu.
